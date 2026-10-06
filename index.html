@@ -311,7 +311,6 @@ function viewToday() {
         <label class="lab" style="margin-top:0.75rem">Doing a different session today? (missed day, Wednesday/Thursday swap)</label>
         <select data-act="session">${Object.keys(plan.sessions).map(k => `<option value="${esc(k)}" ${k === sid ? 'selected' : ''}>${esc(plan.sessions[k].title)}</option>`).join('')}</select></div>`;
 
-    if (ses.kind !== 'off') h += viewPre(log, ses);
     for (const item of ses.items) h += viewItem(item, log, week);
 
     if (ses.items.some(i => i.type === 'jump')) {
@@ -332,25 +331,6 @@ function viewToday() {
             <label class="lab" style="margin-top:0.5rem">Low</label><textarea rows="2" data-act="note" data-v="low">${esc(n.low)}</textarea></div>`;
     }
     h += viewStretch(log);
-    return h;
-}
-
-function viewPre(log, ses) {
-    const p = log.pre || {};
-    const opt = (k, v, label, cls) => `<button data-act="pre" data-k="${k}" data-v="${v}" class="${p[k] === v ? cls : 'ghost'}">${label}</button>`;
-    let h = `<div class="card"><h3>Before you start</h3>
-        <div class="small muted">Ate in the last hour or so?</div><div class="choice">${opt('fuel', 'yes', 'Ate', 'good')}${opt('fuel', 'no', 'Not yet', 'warn')}</div>
-        <div class="small muted" style="margin-top:0.625rem">Shins: 10 hops each leg, press along each shin</div>
-        <div class="choice">${opt('shin', 'ok', 'Nothing', 'good')}${opt('shin', 'sore', 'General soreness', 'warn')}${opt('shin', 'spot', 'One spot / 3+', 'bad')}</div>
-        <div class="small muted" style="margin-top:0.625rem">Knees right now</div>
-        <div class="choice">${opt('knee', 'ok', '0 to 2', 'good')}${opt('knee', 'mid', '3 to 4', 'warn')}${opt('knee', 'bad', '5+ / swelling', 'bad')}</div>`;
-    if (p.fuel === 'no') h += `<div class="advice amber">Eat something with carbs and protein and give it 30 minutes. Or do the short version today: mobility and your walk.</div>`;
-    if (p.shin === 'sore' && ses.kind === 'run') h += `<div class="advice amber">Swap today's run for a longer walk.</div>`;
-    if (p.shin === 'sore' && ses.kind === 'gym') h += `<div class="advice amber">Skip the jumps today. Lifting is fine.</div>`;
-    if (p.shin === 'spot') h += `<div class="advice red">No running or jumping today. Walk instead. Two days in a row like this: no running until three pain-free days.</div>`;
-    if (p.knee === 'mid') h += `<div class="advice amber">Drop the jumps and raise the bench on squats.</div>`;
-    if (p.knee === 'bad') h += `<div class="advice red">Upper body only today.</div>`;
-    h += `<div class="small muted" style="margin-top:0.625rem">Lightheaded mid-session: stop, sit, eat. That session is over.</div></div>`;
     return h;
 }
 
@@ -526,7 +506,6 @@ document.addEventListener('click', e => {
     else if (a === 'day') cur = addDays(cur, Number(v));
     else if (a === 'today') cur = ds(new Date());
     else if (a === 'goto') { cur = v; tab = 'today'; }
-    else if (a === 'pre') { const p = getLog(cur).pre; p[b.dataset.k] = p[b.dataset.k] === v ? '' : v; saveLogs(); }
     else if (a === 'timer-add') { if (timer) { timer.end = Math.max(timer.end, Date.now()) + 30000; timer.rang = false; } return tick(); }
     else if (a === 'timer-stop') { timer = null; return tick(); }
     else if (a === 'stretch-start') return stretchGo(0);
