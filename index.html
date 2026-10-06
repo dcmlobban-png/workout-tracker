@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tracker">
 <meta name="theme-color" content="#0f172a">
@@ -19,7 +22,12 @@ body {
     padding-bottom: 150px;
     -webkit-text-size-adjust: 100%;
 }
-.container { max-width: 640px; margin: 0 auto; padding: 1.25rem 1rem; }
+.container {
+    max-width: 640px; margin: 0 auto;
+    padding: calc(1.25rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) 1.25rem calc(1rem + env(safe-area-inset-left));
+}
+html { background: #0f172a; overscroll-behavior-y: none; }
+button, input[type="checkbox"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 h1 { font-size: 1.5rem; font-weight: 700; }
 h2 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.25rem; }
 h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
@@ -127,7 +135,7 @@ hr { border: none; border-top: 1px solid #334155; margin: 0.75rem 0; }
 <body>
 <div class="container">
     <div class="row">
-        <div class="grow"><h1>Workout Tracker</h1><div class="muted" id="sub"></div></div>
+        <div class="grow"><h1>Workout Tracker</h1><div class="muted" id="sub"></div><div class="muted small" id="sync"></div></div>
     </div>
     <div class="tabs" id="tabs"></div>
     <div id="app"></div>
@@ -143,7 +151,13 @@ hr { border: none; border-top: 1px solid #334155; margin: 0.75rem 0; }
 /* ---------- storage ---------- */
 const K = { logs: 'wt2-logs', plan: 'wt2-plan', settings: 'wt2-settings' };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
-const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { alert('Could not save. Storage may be full or blocked.'); } };
+const PASS_KEY = 'wt2-pass';
+let syncTimer = null, syncBusy = false, syncAgain = false;
+let sync = { state: 'off', at: null };
+const rawSave = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { alert('Could not save. Storage may be full or blocked.'); } };
+// Every save lands on this device first, then gets queued for GitHub. Plan and settings carry a
+// timestamp so the newest copy wins when two devices disagree; each day's log carries its own.
+const save = (k, v) => { if (k !== K.logs && v && typeof v === 'object') v.u = Date.now(); rawSave(k, v); queueSync(); };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------- dates (local, never UTC) ---------- */
@@ -319,11 +333,11 @@ let plan = load(K.plan, null) || defaultPlan();
     }
     for (const sid in plan.sessions) for (const it of plan.sessions[sid].items)
         if (it.type === 'check' && !it.steps && byKey[it.key]) { it.steps = byKey[it.key].steps; it.name = byKey[it.key].name; delete it.note; }
-    if (localStorage.getItem(K.plan)) save(K.plan, plan);
+    if (localStorage.getItem(K.plan)) rawSave(K.plan, plan);
 })();
 let logs = load(K.logs, {});
 let settings = load(K.settings, {});
-if (!settings.start) { settings.start = mondayOf(ds(new Date())); save(K.settings, settings); }
+if (!settings.start) { settings.start = mondayOf(ds(new Date())); rawSave(K.settings, settings); }
 let cur = ds(new Date());
 let tab = 'today';
 let histKey = '';
@@ -331,7 +345,8 @@ let stretch = null;   // { i, end, paused, left }
 let timer = null;     // { end, label }
 
 const saveLogs = () => save(K.logs, logs);
-const getLog = d => logs[d] || (logs[d] = { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} });
+// getLog is the write path: it stamps the day so syncing knows which copy of that day is newest.
+const getLog = d => { const l = logs[d] || (logs[d] = { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} }); l.u = Date.now(); return l; };
 const peekLog = d => logs[d] || { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} };
 const sessionIdFor = d => (logs[d] && logs[d].session) || plan.week[DAYS[pd(d).getDay()]] || 'off';
 
@@ -405,7 +420,7 @@ function viewToday() {
         <button data-act="today" class="primary">Today</button></div></div>`;
 
     const lb = settings.lastBackup;
-    if (Object.keys(logs).length && (!lb || addDays(lb, 7) < ds(new Date())))
+    if (!localStorage.getItem(PASS_KEY) && Object.keys(logs).length && (!lb || addDays(lb, 7) < ds(new Date())))
         h += `<div class="card banner">Your history lives only on this device. ${lb ? 'Last backup: ' + nice(lb) + '.' : 'You have never made a backup.'} <button class="tiny" data-act="tab" data-v="backup">Back up now</button></div>`;
     if (bw && week === 4) h += `<div class="card banner">Hold week. Same weights, one fewer set per lift, one fewer rep on runs.</div>`;
     if (bw && week === 8) h += `<div class="card banner">Light week, then retest. Same tests as week 1, same conditions.</div>`;
@@ -586,14 +601,19 @@ function viewPlan() {
 }
 
 function viewBackup() {
-    const n = Object.keys(logs).length;
-    return `<div class="card"><h3>Back up your history</h3>
-        <div class="muted">Everything you log lives only in this browser on this device. A backup is one small file you keep somewhere safe.</div>
+    const n = Object.keys(logs).length, on = !!localStorage.getItem(PASS_KEY);
+    return `<div class="card"><h3>Save to GitHub</h3>
+        <div class="muted">${on ? 'This device is connected. Everything you log saves to your GitHub repository a few seconds after you log it, and loads back on any device you connect.' : 'Type your app passcode to connect this device. After that, everything you log saves to your GitHub repository on its own.'}</div>
+        <div class="pill" style="margin-top:0.625rem">${esc(syncText())}</div>
+        ${on ? `<div class="row" style="margin-top:0.75rem"><button class="primary grow" data-act="sync-now">Save now</button><button class="ghost" data-act="sync-off">Disconnect this device</button></div>`
+            : `<div class="row" style="margin-top:0.75rem"><input type="password" id="passIn" placeholder="App passcode" autocomplete="current-password"><button class="primary" data-act="sync-on">Connect</button></div>`}</div>
+        <div class="card"><h3>Back up to a file</h3>
+        <div class="muted">A second copy you keep yourself: one small file with everything in it.</div>
         <div class="row" style="margin-top:0.75rem"><span class="pill blue">${n} day${n === 1 ? '' : 's'} logged</span><span class="pill">${settings.lastBackup ? 'Last backup ' + nice(settings.lastBackup) : 'Never backed up'}</span></div>
         <button class="primary" style="width:100%;margin-top:0.75rem" data-act="export">Save a backup file</button></div>
         <div class="card"><h3>Restore from a backup</h3><div class="muted">This replaces what's on this device with what's in the file.</div>
         <input type="file" accept="application/json,.json" data-act="import" style="margin-top:0.75rem"></div>
-        <div class="card"><h3>Keep it from being wiped</h3><div class="muted">On iPhone, Safari can clear a website's saved data after about a week without a visit. Open this page in Safari, tap Share, then "Add to Home Screen", and always open it from that icon.</div></div>`;
+        <div class="card"><h3>Put it on your home screen</h3><div class="muted">On iPhone: open this page in Safari, tap Share, then "Add to Home Screen". Open it from that icon and it runs as its own app, full screen, and still opens with no signal.</div></div>`;
 }
 
 /* ---------- timers ---------- */
@@ -678,6 +698,9 @@ document.addEventListener('click', e => {
     else if (a === 'stretch-next') return stretchGo(stretch.i + 1);
     else if (a === 'stretch-pause') { if (stretch.paused) { stretch.end = Date.now() + stretch.left * 1000; stretch.paused = false; } else { stretch.left = stretchLeft(); stretch.paused = true; } }
     else if (a === 'export') return exportAll();
+    else if (a === 'sync-on') { const p = $('passIn').value.trim(); if (!p) return; localStorage.setItem(PASS_KEY, p); queueSync(0); }
+    else if (a === 'sync-now') queueSync(0);
+    else if (a === 'sync-off') { if (!confirm('Stop saving to GitHub from this device? What is already saved stays there.')) return; localStorage.removeItem(PASS_KEY); clearTimeout(syncTimer); setSync('off'); }
     else if (a === 'item-del') { if (!confirm('Remove this exercise from the plan? Your logged history stays.')) return; plan.sessions[b.dataset.s].items.splice(Number(b.dataset.i), 1); save(K.plan, plan); }
     else if (a === 'item-up') { const arr = plan.sessions[b.dataset.s].items, i = Number(b.dataset.i); if (i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; save(K.plan, plan); } }
     else if (a === 'item-add') {
@@ -757,6 +780,68 @@ function importAll(file) {
     r.readAsText(file);
 }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+/* ---------- saving to GitHub ---------- */
+// The page never talks to GitHub directly. It sends everything to /api/data, which checks the
+// passcode, merges with what is already stored and commits the result to the repository.
+function mergeState(a, b) {
+    const out = Object.assign({}, a.logs);
+    for (const d in (b.logs || {})) if (!out[d] || (b.logs[d].u || 0) > (out[d].u || 0)) out[d] = b.logs[d];
+    const pick = (x, y) => (y && (y.u || 0) > ((x && x.u) || 0)) ? y : x;
+    return { logs: out, plan: pick(a.plan, b.plan), settings: pick(a.settings, b.settings) };
+}
+function syncText() {
+    const t = sync.at ? sync.at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+    return ({
+        off: 'Not saving to GitHub yet',
+        pending: 'Changes waiting to save',
+        saving: 'Saving to GitHub...',
+        ok: 'Saved to GitHub at ' + t,
+        offline: 'No connection. Saved on this device, will retry.',
+        badpass: 'Wrong passcode. Reconnect in the Backup tab.',
+        unconfigured: 'GitHub saving is not switched on at the server yet.',
+        error: 'Could not save to GitHub. Saved on this device, will retry.'
+    })[sync.state] || '';
+}
+function setSync(state) {
+    sync.state = state; if (state === 'ok') sync.at = new Date();
+    const el = $('sync'); if (el) el.textContent = syncText();
+    if (tab === 'backup' && !(document.activeElement && document.activeElement.id === 'passIn')) render();
+}
+function queueSync(ms) {
+    if (!localStorage.getItem(PASS_KEY)) return;
+    clearTimeout(syncTimer); syncTimer = setTimeout(doSync, ms == null ? 4000 : ms);
+    if (sync.state !== 'saving') setSync('pending');
+}
+async function doSync() {
+    const pass = localStorage.getItem(PASS_KEY); if (!pass) return;
+    if (syncBusy) { syncAgain = true; return; }
+    syncBusy = true; setSync('saving');
+    let next = 'error';
+    try {
+        const r = await fetch('/api/data', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-passcode': pass }, body: JSON.stringify({ logs, plan, settings }) });
+        let j = null; try { j = await r.json(); } catch (e) {}
+        if (r.status === 401) next = 'badpass';
+        else if (r.status === 503 && j && j.error === 'not-configured') next = 'unconfigured';
+        else if (r.ok && j && j.data) {
+            // Anything logged while the request was in flight is newer than the reply, so merge instead of replacing.
+            const before = JSON.stringify([logs, plan, settings]), m = mergeState({ logs, plan, settings }, j.data);
+            logs = m.logs; plan = m.plan; settings = m.settings;
+            rawSave(K.logs, logs); rawSave(K.plan, plan); rawSave(K.settings, settings);
+            const el = document.activeElement;
+            if (JSON.stringify([logs, plan, settings]) !== before && !(el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) render();
+            next = 'ok';
+        }
+    } catch (e) { next = 'offline'; }
+    syncBusy = false; setSync(next);
+    if (syncAgain) { syncAgain = false; queueSync(1000); }
+    else if (next === 'offline' || next === 'error') { clearTimeout(syncTimer); syncTimer = setTimeout(doSync, 30000); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') queueSync(0); });
+window.addEventListener('online', () => queueSync(0));
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (localStorage.getItem(PASS_KEY)) queueSync(0); else setSync('off');
 
 render();
 </script>
