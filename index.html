@@ -153,7 +153,7 @@ function defaultPlan() {
     const tib = sets => ({ key: 'tib', type: 'bw', name: 'Tib raise (back to wall, lift toes)', sets, reps: '15', top: 15, rest: 45 });
     const sol = sets => ({ key: 'soleus', type: 'lift', name: 'Soleus calf raise (bent knee)', sets, reps: '15', top: 15, rest: 45, step: 'db' });
     return {
-        version: 2,
+        version: 3,
         week: { Monday: 'gymA', Tuesday: 'run1', Wednesday: 'gymB', Thursday: 'run2', Friday: 'run3', Saturday: 'gymC', Sunday: 'off' },
         sessions: {
             gymA: { title: 'Gym A: squat + hip thrust', kind: 'gym', minutes: 55, items: [
@@ -172,7 +172,13 @@ function defaultPlan() {
                 { key: 'hipthrust', type: 'lift', name: 'Barbell hip thrust (towel on the bar)', sets: 4, reps: '8', top: 8, rest: 120, step: 'bar', note: 'Stop with 2 reps left.' },
                 { key: 'rfess', type: 'lift', name: 'Rear-foot-elevated split squat, lean forward', sets: 2, reps: '8 each leg', top: 8, rest: 90, step: 'db', note: 'Feel it in the glute.' },
                 { key: 'spanish', type: 'hold', name: 'Spanish squat (band around a rack upright)', sets: 3, reps: '40 s', top: 40, rest: 45, note: 'If the band slips: wall sit.' },
-                tib(3), sol(3)
+                tib(3), sol(3),
+                { key: 'coolA', type: 'check', name: 'Cool-down (4 min)', steps: [
+                    'Couch stretch, back knee on a pad: 45 s each side',
+                    'Calf stretch, straight knee: 30 s each leg',
+                    'Calf stretch, bent knee: 30 s each leg',
+                    '90/90 hip: 45 s each side'
+                ] }
             ] },
             run1: { title: 'Run 1: race pace', kind: 'run', minutes: 45, items: [
                 { key: 'warmR1', type: 'check', name: 'Warm-up (10 min)', steps: [
@@ -189,7 +195,15 @@ function defaultPlan() {
                 { key: 'rhythm5', type: 'run', name: 'Rhythm lines, 5 steps between', prog: [{ from: 1, text: '5 lines at 8.0 m, 6 reps at 80%, walk back' }, { from: 3, text: '5 lines at 8.5 m (race spacing), 6 reps at 80%' }], fields: [{ k: 'spacing', label: 'Spacing (m)' }, { k: 'reps', label: 'Clean reps' }] },
                 { key: 'rhythm3', type: 'run', name: '3-step feel drill', detail: '5 lines at 6.0 m, 4 reps, same takeoff foot. Move out 0.5 m only after two clean sessions in a row.', fields: [{ k: 'spacing', label: 'Spacing (m)' }, { k: 'reps', label: 'Clean reps' }] },
                 { key: 'i150', type: 'run', name: '150s', prog: [{ from: 1, text: '5 x 150 m at about 80%, walk back 2 to 3 min' }, { from: 3, text: '6 x 150 m at about 80%' }, { from: 4, text: '5 x 150 m (hold week)' }, { from: 5, text: '5 x 200 m at about 80%' }, { from: 8, text: '4 x 150 m (light week)' }], fields: [{ k: 'reps', label: 'Reps done' }, { k: 'best', label: 'Best time (s)' }] },
-                { key: 'coolR1', type: 'check', name: 'Cool-down + shin check' }
+                { key: 'coolR1', type: 'check', name: 'Cool-down (7 min)', steps: [
+                    'Walk: 3 min',
+                    'Calf stretch, straight knee: 30 s each leg',
+                    'Calf stretch, bent knee: 30 s each leg',
+                    'Hamstring stretch: 45 s each leg',
+                    'Couch stretch, back knee on a pad: 45 s each side',
+                    'Shin check, single-leg hops: 10 each leg',
+                    'Shin check, press a fingertip along each shin: once down each'
+                ] }
             ] },
             gymB: { title: 'Gym B: RDL + upper body', kind: 'gym', minutes: 48, items: [
                 { key: 'warmB', type: 'check', name: 'Warm-up (6 min)', steps: [
@@ -207,7 +221,13 @@ function defaultPlan() {
                 { key: 'incline', type: 'lift', name: 'Incline DB press', sets: 3, reps: '10', top: 10, rest: 75, step: 'db' },
                 { key: 'chinneg', type: 'bw', name: 'Knees-bent chin-up negatives, 5 s lower', sets: 3, reps: '4', top: 4, rest: 90, note: 'Start from the top off the bench.' },
                 { key: 'row', type: 'lift', name: 'One-arm DB row', sets: 3, reps: '10 each', top: 10, rest: 60, step: 'db' },
-                tib(2), sol(2)
+                tib(2), sol(2),
+                { key: 'coolB', type: 'check', name: 'Cool-down (4 min)', steps: [
+                    'Hamstring stretch: 45 s each leg',
+                    'Couch stretch, back knee on a pad: 45 s each side',
+                    'Cross-body shoulder stretch: 30 s each arm',
+                    'Lat stretch, holding a rack upright and sitting back: 30 s each side'
+                ] }
             ] },
             run2: { title: 'Run 2: easy', kind: 'run', minutes: 35, items: [
                 { key: 'easy', type: 'run', name: 'Easy run, continuous, talk-test pace', prog: [{ from: 1, text: '20 min' }, { from: 2, text: '22 min' }, { from: 3, text: '25 min' }, { from: 4, text: '22 min (hold week)' }, { from: 5, text: '27 min' }, { from: 6, text: '30 min' }, { from: 8, text: '20 min (light week)' }], fields: [{ k: 'min', label: 'Minutes' }] },
@@ -230,7 +250,15 @@ function defaultPlan() {
                 ] },
                 { key: 'hills', type: 'run', name: 'Hill sprints, walk down every rep', prog: [{ from: 1, text: '6 x 8 s at 90 to 95%' }, { from: 3, text: '8 x 8 s at 90 to 95%' }, { from: 4, text: '6 x 8 s (hold week)' }, { from: 5, text: '8 x 10 s at 90 to 95%' }, { from: 8, text: '6 x 8 s (light week)' }], detail: 'Mark where rep 1 ends. A rep that lands 3 m short means you\'re done.', fields: [{ k: 'reps', label: 'Reps done' }] },
                 { key: 'strides', type: 'run', name: 'Flat strides', detail: '4 x 20 m', fields: [{ k: 'reps', label: 'Reps done' }] },
-                { key: 'coolR3', type: 'check', name: 'Cool-down + shin check' }
+                { key: 'coolR3', type: 'check', name: 'Cool-down (8 min)', steps: [
+                    'Walk: 4 min',
+                    'Calf stretch, straight knee: 30 s each leg',
+                    'Calf stretch, bent knee: 30 s each leg',
+                    'Seated figure-4 glute stretch: 45 s each side',
+                    'Couch stretch, back knee on a pad: 45 s each side',
+                    'Shin check, single-leg hops: 10 each leg',
+                    'Shin check, press a fingertip along each shin: once down each'
+                ] }
             ] },
             gymC: { title: 'Gym C: jumps, thrust, hamstrings', kind: 'gym', minutes: 55, items: [
                 { key: 'warmC', type: 'check', name: 'Warm-up (6 min)', steps: [
@@ -250,7 +278,13 @@ function defaultPlan() {
                 { key: 'backext', type: 'lift', name: 'Back extension, glute-focused', sets: 3, reps: '12', top: 12, rest: 60, step: 'db', note: 'Weight is optional. Leave it blank for bodyweight.' },
                 { key: 'nordic', type: 'bw', name: 'Nordic hamstring lowers (Pearce holds ankles)', sets: 3, reps: '3', top: 3, rest: 90, note: 'Lowering only.' },
                 { key: 'spanish', type: 'hold', name: 'Spanish squat', sets: 2, reps: '40 s', top: 40, rest: 45 },
-                tib(3), sol(3)
+                tib(3), sol(3),
+                { key: 'coolC', type: 'check', name: 'Cool-down (5 min)', steps: [
+                    'Seated figure-4 glute stretch: 45 s each side',
+                    'Hamstring stretch: 45 s each leg',
+                    'Couch stretch, back knee on a pad: 45 s each side',
+                    'Calf stretch, straight knee: 30 s each leg'
+                ] }
             ] },
             off: { title: 'Off from training', kind: 'off', minutes: 0, items: [] }
         },
@@ -267,12 +301,19 @@ function defaultPlan() {
 
 /* ---------- state ---------- */
 let plan = load(K.plan, null) || defaultPlan();
-// A plan saved before warm-ups had step lists picks them up from the default, without touching other edits.
+// A plan saved before warm-ups and cool-downs had step lists picks them up once, without touching other edits.
 (() => {
+    if ((plan.version || 2) >= 3) return;
+    plan.version = 3;
     const def = defaultPlan(), byKey = {};
     for (const sid in def.sessions) for (const it of def.sessions[sid].items) if (it.steps) byKey[it.key] = it;
+    for (const sid of ['gymA', 'gymB', 'gymC']) {
+        const cool = def.sessions[sid].items.find(it => it.key.startsWith('cool'));
+        if (plan.sessions[sid] && cool && !plan.sessions[sid].items.some(it => it.key === cool.key)) plan.sessions[sid].items.push(cool);
+    }
     for (const sid in plan.sessions) for (const it of plan.sessions[sid].items)
         if (it.type === 'check' && !it.steps && byKey[it.key]) { it.steps = byKey[it.key].steps; it.name = byKey[it.key].name; delete it.note; }
+    if (localStorage.getItem(K.plan)) save(K.plan, plan);
 })();
 let logs = load(K.logs, {});
 let settings = load(K.settings, {});
