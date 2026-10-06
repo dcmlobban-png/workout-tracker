@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Workout Tracker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #f8fafc;
+    padding-bottom: 150px;
+    -webkit-text-size-adjust: 100%;
+}
+.container { max-width: 640px; margin: 0 auto; padding: 1.25rem 1rem; }
+h1 { font-size: 1.5rem; font-weight: 700; }
+h2 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.25rem; }
+h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+.muted { color: #94a3b8; font-size: 0.875rem; }
+.small { font-size: 0.8125rem; }
+.card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.625rem;
+    padding: 1rem;
+    margin-bottom: 0.875rem;
+}
+.tabs { display: flex; gap: 0.375rem; margin: 1rem 0; }
+.tabs button { flex: 1; }
+button {
+    padding: 0.625rem 0.75rem;
+    background: #334155;
+    color: #f8fafc;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+button:active { background: #475569; }
+button.primary, button.on { background: #2563eb; }
+button.warn { background: #b45309; }
+button.bad { background: #b91c1c; }
+button.good { background: #15803d; }
+button.ghost { background: transparent; border: 1px solid #475569; }
+button.tiny { padding: 0.3rem 0.5rem; font-size: 0.75rem; }
+.row { display: flex; gap: 0.5rem; align-items: center; }
+.row.wrap { flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+input, select, textarea {
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 0.5rem;
+    color: #f8fafc;
+    font-size: 1rem;
+    padding: 0.5rem 0.625rem;
+    font-family: inherit;
+    width: 100%;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+input[type="checkbox"] { width: 1.5rem; height: 1.5rem; flex: none; accent-color: #3b82f6; }
+input.num { width: 5.25rem; flex: none; text-align: center; }
+label.lab { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem; }
+.set-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: #0f172a; border-radius: 0.5rem;
+    padding: 0.5rem 0.625rem; margin-top: 0.5rem;
+}
+.set-row .set-label { flex: 1; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+.set-row input.num { width: 4.5rem; padding: 0.5rem 0.25rem; }
+.set-row.done { opacity: 0.6; }
+.unit { color: #94a3b8; font-size: 0.75rem; }
+.pill {
+    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
+    background: #334155; font-size: 0.75rem; font-weight: 600; color: #cbd5e1;
+}
+.pill.blue { background: #1e3a8a; color: #bfdbfe; }
+.pill.amber { background: #78350f; color: #fde68a; }
+.last { margin-top: 0.5rem; padding: 0.5rem 0.625rem; border-left: 3px solid #3b82f6; background: #172033; border-radius: 0 0.375rem 0.375rem 0; font-size: 0.8125rem; color: #cbd5e1; }
+.last b { color: #f8fafc; }
+.advice { margin-top: 0.5rem; padding: 0.5rem 0.625rem; border-radius: 0.375rem; font-size: 0.8125rem; }
+.advice.ok { background: #14321f; color: #bbf7d0; }
+.advice.amber { background: #3b2a0b; color: #fde68a; }
+.advice.red { background: #3f1515; color: #fecaca; }
+.choice { display: flex; gap: 0.375rem; margin-top: 0.375rem; }
+.choice button { flex: 1; padding: 0.5rem 0.25rem; font-size: 0.8125rem; }
+.fields { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.625rem; }
+.fields > div { flex: 1; min-width: 7rem; }
+#timer {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: #1d4ed8; padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    display: none; align-items: center; gap: 0.75rem; z-index: 10;
+}
+#timer.show { display: flex; }
+#timer.over { background: #15803d; }
+#timer .t { font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.5rem; }
+#timer .what { flex: 1; font-size: 0.8125rem; min-width: 0; }
+#timer button { background: rgba(255,255,255,0.2); }
+.hist { padding: 0.625rem 0; border-bottom: 1px solid #334155; font-size: 0.875rem; }
+.hist:last-child { border-bottom: none; }
+.editor-item { border-top: 1px solid #334155; padding: 0.75rem 0; }
+.editor-item .fields > div { min-width: 5rem; }
+.banner { background: #3b2a0b; border-color: #92400e; color: #fde68a; font-size: 0.875rem; }
+.stretch-now { text-align: center; padding: 1rem 0; }
+.stretch-now .big { font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+hr { border: none; border-top: 1px solid #334155; margin: 0.75rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="grow"><h1>Workout Tracker</h1><div class="muted" id="sub"></div></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="app"></div>
+</div>
+<div id="timer">
+    <div class="t" id="timerT">0:00</div>
+    <div class="what" id="timerWhat"></div>
+    <button data-act="timer-add">+30s</button>
+    <button data-act="timer-stop">Skip</button>
+</div>
+
+<script>
+/* ---------- storage ---------- */
+const K = { logs: 'wt2-logs', plan: 'wt2-plan', settings: 'wt2-settings' };
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { alert('Could not save. Storage may be full or blocked.'); } };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- dates (local, never UTC) ---------- */
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const ds = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = pd(s); d.setDate(d.getDate() + n); return ds(d); };
+const nice = s => pd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const mondayOf = s => { const d = pd(s); const off = (d.getDay() + 6) % 7; d.setDate(d.getDate() - off); return ds(d); };
+
+/* ---------- the plan (data, editable in the Plan tab) ---------- */
+function defaultPlan() {
+    const tib = sets => ({ key: 'tib', type: 'bw', name: 'Tib raise (back to wall, lift toes)', sets, reps: '15', top: 15, rest: 45 });
+    const sol = sets => ({ key: 'soleus', type: 'lift', name: 'Soleus calf raise (bent knee)', sets, reps: '15', top: 15, rest: 45, step: 'db' });
+    return {
+        version: 2,
+        week: { Monday: 'gymA', Tuesday: 'run1', Wednesday: 'gymB', Thursday: 'run2', Friday: 'run3', Saturday: 'gymC', Sunday: 'off' },
+        sessions: {
+            gymA: { title: 'Gym A: squat + hip thrust', kind: 'gym', minutes: 55, items: [
+                { key: 'warmA', type: 'check', name: 'Warm-up (8 min)', note: 'Ankle rocks, goblet squat hold, hurdle walkovers (broom across two buckets).' },
+                { key: 'boxjump', type: 'jump', name: 'Box jump onto the ice chest, step down', sets: 3, reps: '3', contacts: 3, rest: 60, note: 'Fresh, before lifting. Quiet landings.' },
+                { key: 'fsquat', type: 'lift', name: 'Front squat to flat bench, heels on 10 lb plates', sets: 4, reps: '5', top: 5, rest: 150, step: 'bar', note: '3 seconds down. Stop with 2 reps left. First session: work up in 20 lb steps to find your weight.' },
+                { key: 'hipthrust', type: 'lift', name: 'Barbell hip thrust (towel on the bar)', sets: 4, reps: '8', top: 8, rest: 120, step: 'bar', note: 'Stop with 2 reps left.' },
+                { key: 'rfess', type: 'lift', name: 'Rear-foot-elevated split squat, lean forward', sets: 2, reps: '8 each leg', top: 8, rest: 90, step: 'db', note: 'Feel it in the glute.' },
+                { key: 'spanish', type: 'hold', name: 'Spanish squat (band around a rack upright)', sets: 3, reps: '40 s', top: 40, rest: 45, note: 'If the band slips: wall sit.' },
+                tib(3), sol(3)
+            ] },
+            run1: { title: 'Run 1: race pace', kind: 'run', minutes: 45, items: [
+                { key: 'warmR1', type: 'check', name: 'Warm-up (10 min)', note: 'Ladder, marches, A-skips.' },
+                { key: 'start8', type: 'run', name: '8-step start to a line at 13 m, then through 3 more lines', detail: '4 reps. Film from the side.', fields: [{ k: 'steps', label: 'Steps to 13 m line' }, { k: 'reps', label: 'Reps' }] },
+                { key: 'rhythm5', type: 'run', name: 'Rhythm lines, 5 steps between', prog: [{ from: 1, text: '5 lines at 8.0 m, 6 reps at 80%, walk back' }, { from: 3, text: '5 lines at 8.5 m (race spacing), 6 reps at 80%' }], fields: [{ k: 'spacing', label: 'Spacing (m)' }, { k: 'reps', label: 'Clean reps' }] },
+                { key: 'rhythm3', type: 'run', name: '3-step feel drill', detail: '5 lines at 6.0 m, 4 reps, same takeoff foot. Move out 0.5 m only after two clean sessions in a row.', fields: [{ k: 'spacing', label: 'Spacing (m)' }, { k: 'reps', label: 'Clean reps' }] },
+                { key: 'i150', type: 'run', name: '150s', prog: [{ from: 1, text: '5 x 150 m at about 80%, walk back 2 to 3 min' }, { from: 3, text: '6 x 150 m at about 80%' }, { from: 4, text: '5 x 150 m (hold week)' }, { from: 5, text: '5 x 200 m at about 80%' }, { from: 8, text: '4 x 150 m (light week)' }], fields: [{ k: 'reps', label: 'Reps done' }, { k: 'best', label: 'Best time (s)' }] },
+                { key: 'coolR1', type: 'check', name: 'Cool-down + shin check' }
+            ] },
+            gymB: { title: 'Gym B: RDL + upper body', kind: 'gym', minutes: 48, items: [
+                { key: 'warmB', type: 'check', name: 'Warm-up + hurdle walkovers (6 min)' },
+                { key: 'pogo', type: 'jump', name: 'Pogo hops (small, stiff ankles)', sets: 2, reps: '15', contacts: 15, rest: 30 },
+                { key: 'rdl', type: 'lift', name: 'Barbell RDL from the rack (safeties as pins)', sets: 4, reps: '6', top: 6, rest: 120, step: 'bar', note: 'Stop with 2 reps left. Start the bar higher if depth fails.' },
+                { key: 'hipthrust-light', type: 'lift', name: 'Hip thrust, lighter', sets: 3, reps: '10', top: 10, rest: 90, step: 'bar' },
+                { key: 'incline', type: 'lift', name: 'Incline DB press', sets: 3, reps: '10', top: 10, rest: 75, step: 'db' },
+                { key: 'chinneg', type: 'bw', name: 'Knees-bent chin-up negatives, 5 s lower', sets: 3, reps: '4', top: 4, rest: 90, note: 'Start from the top off the bench.' },
+                { key: 'row', type: 'lift', name: 'One-arm DB row', sets: 3, reps: '10 each', top: 10, rest: 60, step: 'db' },
+                tib(2), sol(2)
+            ] },
+            run2: { title: 'Run 2: easy', kind: 'run', minutes: 35, items: [
+                { key: 'easy', type: 'run', name: 'Easy run, continuous, talk-test pace', prog: [{ from: 1, text: '20 min' }, { from: 2, text: '22 min' }, { from: 3, text: '25 min' }, { from: 4, text: '22 min (hold week)' }, { from: 5, text: '27 min' }, { from: 6, text: '30 min' }, { from: 8, text: '20 min (light week)' }], fields: [{ k: 'min', label: 'Minutes' }] },
+                { key: 'rhythm5', type: 'run', name: 'Rhythm lines, 5 steps between', detail: '4 reps at Tuesday\'s spacing.', fields: [{ k: 'spacing', label: 'Spacing (m)' }, { k: 'reps', label: 'Clean reps' }] },
+                { key: 'mobR2', type: 'check', name: 'Mobility (5 min)', note: 'Hurdle seat, 90/90 hip, knee-to-wall ankle rocks.' }
+            ] },
+            run3: { title: 'Run 3: hills', kind: 'run', minutes: 40, items: [
+                { key: 'warmR3', type: 'check', name: 'Warm-up (10 min)' },
+                { key: 'hills', type: 'run', name: 'Hill sprints, walk down every rep', prog: [{ from: 1, text: '6 x 8 s at 90 to 95%' }, { from: 3, text: '8 x 8 s at 90 to 95%' }, { from: 4, text: '6 x 8 s (hold week)' }, { from: 5, text: '8 x 10 s at 90 to 95%' }, { from: 8, text: '6 x 8 s (light week)' }], detail: 'Mark where rep 1 ends. A rep that lands 3 m short means you\'re done.', fields: [{ k: 'reps', label: 'Reps done' }] },
+                { key: 'strides', type: 'run', name: 'Flat strides', detail: '4 x 20 m', fields: [{ k: 'reps', label: 'Reps done' }] },
+                { key: 'coolR3', type: 'check', name: 'Cool-down + shin check' }
+            ] },
+            gymC: { title: 'Gym C: jumps, thrust, hamstrings', kind: 'gym', minutes: 55, items: [
+                { key: 'warmC', type: 'check', name: 'Warm-up (6 min)' },
+                { key: 'pogo', type: 'jump', name: 'Pogo hops', sets: 2, reps: '15', contacts: 15, rest: 30 },
+                { key: 'broad', type: 'jump', name: 'Broad jump, stick the landing', sets: 3, reps: '3', contacts: 3, rest: 60 },
+                { key: 'fsquat-light', type: 'lift', name: 'Front squat to flat bench, lighter', sets: 3, reps: '6', top: 6, rest: 120, step: 'bar' },
+                { key: 'hipthrust', type: 'lift', name: 'Barbell hip thrust, heavy', sets: 4, reps: '8', top: 8, rest: 120, step: 'bar', note: 'Stop with 2 reps left.' },
+                { key: 'slrdl', type: 'lift', name: 'Single-leg DB RDL', sets: 3, reps: '8 each', top: 8, rest: 60, step: 'db' },
+                { key: 'backext', type: 'lift', name: 'Back extension, glute-focused', sets: 3, reps: '12', top: 12, rest: 60, step: 'db', note: 'Weight is optional. Leave it blank for bodyweight.' },
+                { key: 'nordic', type: 'bw', name: 'Nordic hamstring lowers (Pearce holds ankles)', sets: 3, reps: '3', top: 3, rest: 90, note: 'Lowering only.' },
+                { key: 'spanish', type: 'hold', name: 'Spanish squat', sets: 2, reps: '40 s', top: 40, rest: 45 },
+                tib(3), sol(3)
+            ] },
+            off: { title: 'Off from training', kind: 'off', minutes: 0, items: [] }
+        },
+        walk: { min: 30, max: 45 },
+        jumpCap: 80,
+        nightly: [
+            { name: 'Hurdle seat, left', sec: 45 }, { name: 'Hurdle seat, right', sec: 45 },
+            { name: 'Deep squat hold on a door frame', sec: 60 },
+            { name: 'Knee-to-wall ankle rocks, left', sec: 30 }, { name: 'Knee-to-wall ankle rocks, right', sec: 30 },
+            { name: 'Hamstring stretch, left', sec: 45 }, { name: 'Hamstring stretch, right', sec: 45 }
+        ]
+    };
+}
+
+/* ---------- state ---------- */
+let plan = load(K.plan, null) || defaultPlan();
+let logs = load(K.logs, {});
+let settings = load(K.settings, {});
+if (!settings.start) { settings.start = mondayOf(ds(new Date())); save(K.settings, settings); }
+let cur = ds(new Date());
+let tab = 'today';
+let histKey = '';
+let stretch = null;   // { i, end, paused, left }
+let timer = null;     // { end, label }
+
+const saveLogs = () => save(K.logs, logs);
+const getLog = d => logs[d] || (logs[d] = { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} });
+const peekLog = d => logs[d] || { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} };
+const sessionIdFor = d => (logs[d] && logs[d].session) || plan.week[DAYS[pd(d).getDay()]] || 'off';
+
+function blockWeek(d) {
+    const days = Math.round((pd(d) - pd(settings.start)) / 864e5);
+    if (days < 0) return null;
+    const w = Math.floor(days / 7);
+    return { block: Math.floor(w / 8) + 1, week: (w % 8) + 1 };
+}
+function progText(item, week) {
+    if (!item.prog || !item.prog.length) return item.detail || '';
+    let t = item.prog[0].text;
+    for (const p of item.prog) if ((week || 1) >= p.from) t = p.text;
+    return t + (item.detail ? ' · ' + item.detail : '');
+}
+function lastTime(key, before) {
+    const dates = Object.keys(logs).filter(d => d < before).sort().reverse();
+    for (const d of dates) {
+        const s = (logs[d].sets || {})[key];
+        if (s && s.some(x => x && x.done)) return { date: d, sets: s.filter(x => x && x.done) };
+    }
+    return null;
+}
+function lastRun(key, before) {
+    const dates = Object.keys(logs).filter(d => d < before).sort().reverse();
+    for (const d of dates) {
+        const r = (logs[d].runs || {})[key];
+        if (r && Object.keys(r).some(k => r[k] !== '' && r[k] != null && k !== 'done')) return { date: d, r };
+    }
+    return null;
+}
+function fmtSet(item, s) {
+    if (item.type === 'hold') return (s.r || '?') + ' s';
+    if (item.type === 'bw') return (s.r || '?') + ' reps';
+    return (s.w ? s.w + ' lb' : 'bodyweight') + ' x ' + (s.r || '?');
+}
+function suggestion(item, last) {
+    if (!last || !item.top) return '';
+    const hit = last.sets.length >= item.sets && last.sets.every(s => Number(s.r) >= item.top);
+    if (!hit) return 'Same weight today. Beat the reps.';
+    if (item.type === 'hold') return 'All holds hit ' + item.top + ' s. Use a heavier band or sit lower.';
+    if (item.type === 'bw') return 'All sets hit ' + item.top + '. Add a rep per set.';
+    if (item.step === 'bar') return 'All sets hit ' + item.top + ' last time. Go up 20 lb.';
+    return 'All sets hit ' + item.top + ' last time. Go to the next dumbbell pair (no 30s: beat the reps by 2 at 25 before jumping to 35).';
+}
+function contactsOn(d) {
+    const l = logs[d]; if (!l) return 0; let n = 0;
+    for (const k in (l.sets || {})) for (const s of l.sets[k] || []) if (s && s.done && s.c) n += s.c;
+    return n;
+}
+function contactsWeek(d) { let n = 0; for (let i = 0; i < 7; i++) n += contactsOn(addDays(d, -i)); return n; }
+
+/* ---------- rendering ---------- */
+const $ = id => document.getElementById(id);
+function render() {
+    $('tabs').innerHTML = [['today', 'Today'], ['history', 'History'], ['plan', 'Plan'], ['backup', 'Backup']]
+        .map(([k, t]) => `<button data-act="tab" data-v="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('');
+    const bw = blockWeek(cur);
+    $('sub').textContent = bw ? `Block ${bw.block} · Week ${bw.week} of 8` : 'Block starts ' + nice(settings.start);
+    $('app').innerHTML = tab === 'today' ? viewToday() : tab === 'history' ? viewHistory() : tab === 'plan' ? viewPlan() : viewBackup();
+}
+
+function viewToday() {
+    const log = peekLog(cur), sid = sessionIdFor(cur), ses = plan.sessions[sid] || plan.sessions.off;
+    const bw = blockWeek(cur), week = bw ? bw.week : 1;
+    let h = '';
+    h += `<div class="card"><div class="row">
+        <button data-act="day" data-v="-1">&larr;</button>
+        <input type="date" data-act="date" value="${cur}" class="grow">
+        <button data-act="day" data-v="1">&rarr;</button>
+        <button data-act="today" class="primary">Today</button></div></div>`;
+
+    const lb = settings.lastBackup;
+    if (Object.keys(logs).length && (!lb || addDays(lb, 7) < ds(new Date())))
+        h += `<div class="card banner">Your history lives only on this device. ${lb ? 'Last backup: ' + nice(lb) + '.' : 'You have never made a backup.'} <button class="tiny" data-act="tab" data-v="backup">Back up now</button></div>`;
+    if (bw && week === 4) h += `<div class="card banner">Hold week. Same weights, one fewer set per lift, one fewer rep on runs.</div>`;
+    if (bw && week === 8) h += `<div class="card banner">Light week, then retest. Same tests as week 1, same conditions.</div>`;
+
+    h += `<div class="card"><h2>${esc(ses.title)}</h2>
+        <div class="muted">${ses.kind === 'off' ? 'Walk only today.' : 'About ' + esc(ses.minutes) + ' min'}</div>
+        <label class="lab" style="margin-top:0.75rem">Doing a different session today? (missed day, Wednesday/Thursday swap)</label>
+        <select data-act="session">${Object.keys(plan.sessions).map(k => `<option value="${esc(k)}" ${k === sid ? 'selected' : ''}>${esc(plan.sessions[k].title)}</option>`).join('')}</select></div>`;
+
+    if (ses.kind !== 'off') h += viewPre(log, ses);
+    for (const item of ses.items) h += viewItem(item, log, week);
+
+    if (ses.items.some(i => i.type === 'jump')) {
+        const wk = contactsWeek(cur);
+        h += `<div class="card"><h3>Jump contacts</h3><div class="row"><span class="pill blue">Today: ${contactsOn(cur)}</span>
+            <span class="pill ${wk > plan.jumpCap ? 'amber' : ''}">Last 7 days: ${wk} / ${esc(plan.jumpCap)}</span></div></div>`;
+    }
+
+    const w = log.walk || {};
+    h += `<div class="card ${w.done ? 'done' : ''}"><div class="row"><input type="checkbox" data-act="walk-done" ${w.done ? 'checked' : ''}>
+        <div class="grow"><h3 style="margin:0">Daily walk</h3><div class="muted">Brisk, ${esc(plan.walk.min)} to ${esc(plan.walk.max)} min. Can be split in two.</div></div>
+        <input class="num" type="number" inputmode="numeric" data-act="walk-min" value="${esc(w.min)}" placeholder="min"></div></div>`;
+
+    if (ses.kind !== 'off') {
+        const n = log.notes || {};
+        h += `<div class="card"><h3>After the session</h3>
+            <label class="lab">High</label><textarea rows="2" data-act="note" data-v="high">${esc(n.high)}</textarea>
+            <label class="lab" style="margin-top:0.5rem">Low</label><textarea rows="2" data-act="note" data-v="low">${esc(n.low)}</textarea></div>`;
+    }
+    h += viewStretch(log);
+    return h;
+}
+
+function viewPre(log, ses) {
+    const p = log.pre || {};
+    const opt = (k, v, label, cls) => `<button data-act="pre" data-k="${k}" data-v="${v}" class="${p[k] === v ? cls : 'ghost'}">${label}</button>`;
+    let h = `<div class="card"><h3>Before you start</h3>
+        <div class="small muted">Ate in the last hour or so?</div><div class="choice">${opt('fuel', 'yes', 'Ate', 'good')}${opt('fuel', 'no', 'Not yet', 'warn')}</div>
+        <div class="small muted" style="margin-top:0.625rem">Shins: 10 hops each leg, press along each shin</div>
+        <div class="choice">${opt('shin', 'ok', 'Nothing', 'good')}${opt('shin', 'sore', 'General soreness', 'warn')}${opt('shin', 'spot', 'One spot / 3+', 'bad')}</div>
+        <div class="small muted" style="margin-top:0.625rem">Knees right now</div>
+        <div class="choice">${opt('knee', 'ok', '0 to 2', 'good')}${opt('knee', 'mid', '3 to 4', 'warn')}${opt('knee', 'bad', '5+ / swelling', 'bad')}</div>`;
+    if (p.fuel === 'no') h += `<div class="advice amber">Eat something with carbs and protein and give it 30 minutes. Or do the short version today: mobility and your walk.</div>`;
+    if (p.shin === 'sore' && ses.kind === 'run') h += `<div class="advice amber">Swap today's run for a longer walk.</div>`;
+    if (p.shin === 'sore' && ses.kind === 'gym') h += `<div class="advice amber">Skip the jumps today. Lifting is fine.</div>`;
+    if (p.shin === 'spot') h += `<div class="advice red">No running or jumping today. Walk instead. Two days in a row like this: no running until three pain-free days.</div>`;
+    if (p.knee === 'mid') h += `<div class="advice amber">Drop the jumps and raise the bench on squats.</div>`;
+    if (p.knee === 'bad') h += `<div class="advice red">Upper body only today.</div>`;
+    h += `<div class="small muted" style="margin-top:0.625rem">Lightheaded mid-session: stop, sit, eat. That session is over.</div></div>`;
+    return h;
+}
+
+function viewItem(item, log, week) {
+    const k = esc(item.key);
+    if (item.type === 'check') {
+        const d = (log.done || {})[item.key];
+        return `<div class="card ${d ? 'done' : ''}"><div class="row"><input type="checkbox" data-act="check" data-k="${k}" ${d ? 'checked' : ''}>
+            <div class="grow"><h3 style="margin:0">${esc(item.name)}</h3>${item.note ? `<div class="muted">${esc(item.note)}</div>` : ''}</div></div></div>`;
+    }
+    if (item.type === 'run') {
+        const r = (log.runs || {})[item.key] || {}, lr = lastRun(item.key, cur);
+        let h = `<div class="card"><div class="row"><input type="checkbox" data-act="run-done" data-k="${k}" ${r.done ? 'checked' : ''}>
+            <div class="grow"><h3 style="margin:0">${esc(item.name)}</h3><div class="muted">${esc(progText(item, week))}</div></div></div><div class="fields">`;
+        for (const f of item.fields || [])
+            h += `<div><label class="lab">${esc(f.label)}</label><input type="number" inputmode="decimal" step="any" data-act="run" data-k="${k}" data-f="${esc(f.k)}" value="${esc(r[f.k])}"></div>`;
+        h += `</div>`;
+        if (lr) h += `<div class="last"><b>Last time</b> (${nice(lr.date)}): ${(item.fields || []).filter(f => lr.r[f.k] !== '' && lr.r[f.k] != null).map(f => esc(f.label) + ' ' + esc(lr.r[f.k])).join(' · ')}</div>`;
+        return h + `</div>`;
+    }
+    const sets = (log.sets || {})[item.key] || [], last = item.type === 'jump' ? null : lastTime(item.key, cur);
+    let h = `<div class="card"><h3>${esc(item.name)}</h3>
+        <div class="row wrap"><span class="pill blue">${esc(item.sets)} x ${esc(item.reps)}</span><span class="pill">Rest ${fmtSec(item.rest)}</span>
+        ${item.type === 'jump' ? `<span class="pill">${item.sets * item.contacts} contacts</span>` : ''}</div>
+        ${item.note ? `<div class="muted" style="margin-top:0.375rem">${esc(item.note)}</div>` : ''}`;
+    if (last) h += `<div class="last"><b>Last time</b> (${nice(last.date)}): ${last.sets.map(s => esc(fmtSet(item, s))).join(', ')}<br>${esc(suggestion(item, last))}</div>`;
+    for (let i = 0; i < item.sets; i++) {
+        const s = sets[i] || {}, lw = last && last.sets[Math.min(i, last.sets.length - 1)];
+        h += `<div class="set-row ${s.done ? 'done' : ''}"><input type="checkbox" data-act="set-done" data-k="${k}" data-i="${i}" ${s.done ? 'checked' : ''}><span class="set-label">Set ${i + 1}</span>`;
+        if (item.type === 'lift') h += `<input class="num" type="number" inputmode="decimal" step="any" data-act="set" data-k="${k}" data-i="${i}" data-f="w" value="${esc(s.w)}" placeholder="${lw && lw.w ? esc(lw.w) : 'lb'}"><span class="unit">lb</span>`;
+        if (item.type !== 'jump') h += `<input class="num" type="number" inputmode="numeric" data-act="set" data-k="${k}" data-i="${i}" data-f="r" value="${esc(s.r)}" placeholder="${esc(item.top || '')}"><span class="unit">${item.type === 'hold' ? 'sec' : 'reps'}</span>`;
+        h += `</div>`;
+    }
+    return h + `</div>`;
+}
+
+const fmtSec = s => { s = Number(s) || 0; return s >= 60 ? Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : s + ' s'; };
+
+function viewStretch(log) {
+    const total = plan.nightly.reduce((a, s) => a + Number(s.sec || 0), 0);
+    let h = `<div class="card"><div class="row"><input type="checkbox" data-act="stretch-done" ${log.stretch ? 'checked' : ''}>
+        <div class="grow"><h3 style="margin:0">Nightly stretch</h3><div class="muted">${Math.round(total / 60)} min, guided</div></div>
+        ${stretch ? `<button data-act="stretch-stop">Stop</button>` : `<button class="primary" data-act="stretch-start">Start</button>`}</div>`;
+    if (stretch) {
+        const step = plan.nightly[stretch.i], next = plan.nightly[stretch.i + 1];
+        h += `<div class="stretch-now"><div class="muted">${stretch.i + 1} of ${plan.nightly.length}</div><h2>${esc(step.name)}</h2>
+            <div class="big" id="stretchT">${fmtClock(stretchLeft())}</div><div class="muted">${next ? 'Next: ' + esc(next.name) : 'Last one'}</div>
+            <div class="row" style="justify-content:center;margin-top:0.75rem"><button data-act="stretch-pause">${stretch.paused ? 'Resume' : 'Pause'}</button><button data-act="stretch-next">Next</button></div></div>`;
+    } else {
+        h += `<div class="muted" style="margin-top:0.5rem">${plan.nightly.map(s => esc(s.name) + ' (' + esc(s.sec) + ' s)').join(' · ')}</div>`;
+    }
+    return h + `</div>`;
+}
+
+function viewHistory() {
+    const dates = Object.keys(logs).sort().reverse();
+    if (!dates.length) return `<div class="card muted">Nothing logged yet. Your sessions will show up here.</div>`;
+    const keys = {};
+    for (const sid in plan.sessions) for (const it of plan.sessions[sid].items) if (it.type !== 'check' && it.type !== 'jump') keys[it.key] = it;
+    if (!keys[histKey]) histKey = Object.keys(keys)[0] || '';
+    let h = `<div class="card"><h3>One exercise over time</h3><select data-act="histkey">${Object.keys(keys).map(k => `<option value="${esc(k)}" ${k === histKey ? 'selected' : ''}>${esc(keys[k].name)}</option>`).join('')}</select>`;
+    const it = keys[histKey]; let rows = '';
+    if (it) for (const d of dates) {
+        const l = logs[d];
+        if (it.type === 'run') { const r = (l.runs || {})[it.key]; if (r) { const t = (it.fields || []).filter(f => r[f.k] !== '' && r[f.k] != null).map(f => esc(f.label) + ' ' + esc(r[f.k])).join(' · '); if (t) rows += `<div class="hist"><b>${nice(d)}</b><br>${t}</div>`; } }
+        else { const s = ((l.sets || {})[it.key] || []).filter(x => x && x.done); if (s.length) rows += `<div class="hist"><b>${nice(d)}</b><br>${s.map(x => esc(fmtSet(it, x))).join(', ')}</div>`; }
+    }
+    h += (rows || `<div class="muted" style="margin-top:0.5rem">No entries yet for this one.</div>`) + `</div>`;
+    h += `<div class="card"><h3>Recent days</h3>`;
+    for (const d of dates.slice(0, 30)) {
+        const l = logs[d], ses = plan.sessions[sessionIdFor(d)] || { title: '' };
+        let n = 0; for (const k in (l.sets || {})) n += (l.sets[k] || []).filter(x => x && x.done).length;
+        const bits = [];
+        if (n) bits.push(n + ' sets');
+        const rn = Object.keys(l.runs || {}).filter(k => l.runs[k].done).length; if (rn) bits.push(rn + ' run items');
+        if (l.walk && (l.walk.done || l.walk.min)) bits.push('walk' + (l.walk.min ? ' ' + esc(l.walk.min) + ' min' : ''));
+        if (l.stretch) bits.push('stretch');
+        const c = contactsOn(d); if (c) bits.push(c + ' contacts');
+        h += `<div class="hist"><div class="row"><div class="grow"><b>${nice(d)}</b> · ${esc(ses.title)}</div><button class="tiny ghost" data-act="goto" data-v="${d}">Open</button></div>
+            <div class="muted">${bits.join(' · ') || 'opened, nothing logged'}</div>
+            ${l.notes && l.notes.high ? `<div class="small">High: ${esc(l.notes.high)}</div>` : ''}${l.notes && l.notes.low ? `<div class="small">Low: ${esc(l.notes.low)}</div>` : ''}</div>`;
+    }
+    return h + `</div>`;
+}
+
+function viewPlan() {
+    let h = `<div class="card"><h3>Block</h3><label class="lab">Week 1 starts on</label><input type="date" data-act="start" value="${esc(settings.start)}">
+        <div class="muted" style="margin-top:0.5rem">Each block is 8 weeks. Week 4 is a hold week, week 8 is light plus retest. Starting a new block is a change here, not a rebuild.</div></div>`;
+    h += `<div class="card"><h3>Which session on which day</h3>`;
+    for (const d of DAYS.slice(1).concat(DAYS[0]))
+        h += `<div class="row" style="margin-top:0.375rem"><div style="width:6rem" class="small">${d}</div><select data-act="weekmap" data-v="${d}">${Object.keys(plan.sessions).map(k => `<option value="${esc(k)}" ${plan.week[d] === k ? 'selected' : ''}>${esc(plan.sessions[k].title)}</option>`).join('')}</select></div>`;
+    h += `</div>`;
+    for (const sid in plan.sessions) {
+        const s = plan.sessions[sid]; if (s.kind === 'off') continue;
+        h += `<div class="card"><div class="fields" style="margin-top:0"><div style="flex:3"><label class="lab">Session name</label><input data-act="ses" data-s="${esc(sid)}" data-f="title" value="${esc(s.title)}"></div>
+            <div><label class="lab">Minutes</label><input type="number" data-act="ses" data-s="${esc(sid)}" data-f="minutes" value="${esc(s.minutes)}"></div></div>`;
+        s.items.forEach((it, i) => {
+            const a = `data-s="${esc(sid)}" data-i="${i}"`;
+            h += `<div class="editor-item"><div class="row"><input class="grow" data-act="item" ${a} data-f="name" value="${esc(it.name)}">
+                <button class="tiny ghost" data-act="item-up" ${a}>&uarr;</button><button class="tiny bad" data-act="item-del" ${a}>&times;</button></div>`;
+            if (it.type === 'check') h += `<div class="fields"><div style="flex:3"><label class="lab">Note</label><input data-act="item" ${a} data-f="note" value="${esc(it.note)}"></div></div>`;
+            else if (it.type === 'run') h += `<div class="fields"><div style="flex:3"><label class="lab">What to do${it.prog ? ' (week-by-week text is in the JSON below)' : ''}</label><input data-act="item" ${a} data-f="detail" value="${esc(it.detail)}"></div></div>`;
+            else h += `<div class="fields"><div><label class="lab">Sets</label><input type="number" data-act="item" ${a} data-f="sets" value="${esc(it.sets)}"></div>
+                <div><label class="lab">Reps shown</label><input data-act="item" ${a} data-f="reps" value="${esc(it.reps)}"></div>
+                <div><label class="lab">${it.type === 'jump' ? 'Contacts/set' : 'Top of range'}</label><input type="number" data-act="item" ${a} data-f="${it.type === 'jump' ? 'contacts' : 'top'}" value="${esc(it.type === 'jump' ? it.contacts : it.top)}"></div>
+                <div><label class="lab">Rest (s)</label><input type="number" data-act="item" ${a} data-f="rest" value="${esc(it.rest)}"></div>
+                <div style="flex-basis:100%"><label class="lab">Note</label><input data-act="item" ${a} data-f="note" value="${esc(it.note)}"></div></div>`;
+            h += `</div>`;
+        });
+        h += `<div class="row" style="margin-top:0.75rem"><select id="add-${esc(sid)}" class="grow"><option value="lift">Lift (weight + reps)</option><option value="bw">Bodyweight (reps)</option><option value="hold">Hold (seconds)</option><option value="jump">Jump (contacts)</option><option value="run">Run / drill</option><option value="check">Checkbox</option></select>
+            <button data-act="item-add" data-s="${esc(sid)}">Add exercise</button></div></div>`;
+    }
+    h += `<div class="card"><h3>Whole plan as data</h3><div class="muted">For bigger changes: week-by-week run text, the nightly stretch list, the jump cap.</div>
+        <textarea id="planJson" rows="8" style="margin-top:0.5rem;font-family:monospace;font-size:0.75rem">${esc(JSON.stringify(plan, null, 1))}</textarea>
+        <div class="row" style="margin-top:0.5rem"><button class="primary" data-act="plan-apply">Apply</button><button class="bad" data-act="plan-reset">Reset to the original plan</button></div></div>`;
+    return h;
+}
+
+function viewBackup() {
+    const n = Object.keys(logs).length;
+    return `<div class="card"><h3>Back up your history</h3>
+        <div class="muted">Everything you log lives only in this browser on this device. A backup is one small file you keep somewhere safe.</div>
+        <div class="row" style="margin-top:0.75rem"><span class="pill blue">${n} day${n === 1 ? '' : 's'} logged</span><span class="pill">${settings.lastBackup ? 'Last backup ' + nice(settings.lastBackup) : 'Never backed up'}</span></div>
+        <button class="primary" style="width:100%;margin-top:0.75rem" data-act="export">Save a backup file</button></div>
+        <div class="card"><h3>Restore from a backup</h3><div class="muted">This replaces what's on this device with what's in the file.</div>
+        <input type="file" accept="application/json,.json" data-act="import" style="margin-top:0.75rem"></div>
+        <div class="card"><h3>Keep it from being wiped</h3><div class="muted">On iPhone, Safari can clear a website's saved data after about a week without a visit. Open this page in Safari, tap Share, then "Add to Home Screen", and always open it from that icon.</div></div>`;
+}
+
+/* ---------- timers ---------- */
+let actx;
+function beep() {
+    try {
+        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.connect(g); g.connect(actx.destination); o.frequency.value = 880; g.gain.value = 0.15;
+        o.start(); o.stop(actx.currentTime + 0.35);
+    } catch (e) {}
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+const fmtClock = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+function startTimer(sec, label) { if (!sec) return; timer = { end: Date.now() + sec * 1000, label, rang: false }; tick(); }
+const stretchLeft = () => stretch ? (stretch.paused ? stretch.left : (stretch.end - Date.now()) / 1000) : 0;
+function stretchGo(i) {
+    if (i >= plan.nightly.length) { stretch = null; getLog(cur).stretch = true; saveLogs(); beep(); render(); return; }
+    stretch = { i, end: Date.now() + plan.nightly[i].sec * 1000, paused: false, left: 0 }; render();
+}
+function tick() {
+    const el = $('timer');
+    if (timer) {
+        const left = (timer.end - Date.now()) / 1000;
+        el.classList.add('show'); el.classList.toggle('over', left <= 0);
+        $('timerT').textContent = left > 0 ? fmtClock(left) : 'Go';
+        $('timerWhat').textContent = left > 0 ? 'Rest · ' + timer.label : 'Rest is over · ' + timer.label;
+        if (left <= 0 && !timer.rang) { timer.rang = true; beep(); }
+        if (left < -20) timer = null;
+    } else el.classList.remove('show');
+    if (stretch && !stretch.paused) {
+        const left = stretchLeft(), t = $('stretchT');
+        if (left <= 0) { beep(); stretchGo(stretch.i + 1); } else if (t) t.textContent = fmtClock(left);
+    }
+}
+setInterval(tick, 250);
+
+/* ---------- events ---------- */
+function findItem(key) { const s = plan.sessions[sessionIdFor(cur)]; return s && s.items.find(i => i.key === key); }
+function setSlot(key, i) { const l = getLog(cur); l.sets[key] = l.sets[key] || []; return l.sets[key][i] || (l.sets[key][i] = {}); }
+
+document.addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]'); if (!b) return;
+    const a = b.dataset.act, v = b.dataset.v;
+    if (a === 'tab') tab = v;
+    else if (a === 'day') cur = addDays(cur, Number(v));
+    else if (a === 'today') cur = ds(new Date());
+    else if (a === 'goto') { cur = v; tab = 'today'; }
+    else if (a === 'pre') { const p = getLog(cur).pre; p[b.dataset.k] = p[b.dataset.k] === v ? '' : v; saveLogs(); }
+    else if (a === 'timer-add') { if (timer) { timer.end = Math.max(timer.end, Date.now()) + 30000; timer.rang = false; } return tick(); }
+    else if (a === 'timer-stop') { timer = null; return tick(); }
+    else if (a === 'stretch-start') return stretchGo(0);
+    else if (a === 'stretch-stop') stretch = null;
+    else if (a === 'stretch-next') return stretchGo(stretch.i + 1);
+    else if (a === 'stretch-pause') { if (stretch.paused) { stretch.end = Date.now() + stretch.left * 1000; stretch.paused = false; } else { stretch.left = stretchLeft(); stretch.paused = true; } }
+    else if (a === 'export') return exportAll();
+    else if (a === 'item-del') { if (!confirm('Remove this exercise from the plan? Your logged history stays.')) return; plan.sessions[b.dataset.s].items.splice(Number(b.dataset.i), 1); save(K.plan, plan); }
+    else if (a === 'item-up') { const arr = plan.sessions[b.dataset.s].items, i = Number(b.dataset.i); if (i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; save(K.plan, plan); } }
+    else if (a === 'item-add') {
+        const type = $('add-' + b.dataset.s).value, key = 'x' + Date.now().toString(36);
+        const it = { key, type, name: 'New exercise' };
+        if (type === 'run') it.fields = [{ k: 'reps', label: 'Reps done' }];
+        else if (type !== 'check') Object.assign(it, { sets: 3, reps: '8', top: 8, rest: 90, step: 'db' });
+        if (type === 'jump') it.contacts = 3;
+        plan.sessions[b.dataset.s].items.push(it); save(K.plan, plan);
+    }
+    else if (a === 'plan-apply') {
+        try { const p = JSON.parse($('planJson').value); if (!p.sessions || !p.week) throw 0; plan = p; save(K.plan, plan); }
+        catch (err) { return alert('That isn\'t valid plan data, so nothing changed.'); }
+    }
+    else if (a === 'plan-reset') { if (!confirm('Put the plan back to the original? Your logged history stays.')) return; plan = defaultPlan(); save(K.plan, plan); }
+    render();
+});
+
+document.addEventListener('change', e => {
+    const t = e.target, a = t.dataset.act; if (!a) return;
+    const k = t.dataset.k, f = t.dataset.f;
+    if (a === 'date') { if (t.value) cur = t.value; }
+    else if (a === 'session') { getLog(cur).session = t.value; saveLogs(); }
+    else if (a === 'check') { getLog(cur).done[k] = t.checked; saveLogs(); }
+    else if (a === 'set') { setSlot(k, Number(t.dataset.i))[f] = t.value; saveLogs(); return; }
+    else if (a === 'set-done') {
+        const item = findItem(k), i = Number(t.dataset.i), s = setSlot(k, i);
+        s.done = t.checked;
+        if (item && item.type === 'jump') s.c = t.checked ? Number(item.contacts) || 0 : 0;
+        if (item && t.checked) {
+            if (item.type !== 'jump' && !s.r) { const prev = getLog(cur).sets[k][i - 1]; s.r = (prev && prev.r) || ''; }
+            if (item.type === 'lift' && !s.w) { const prev = getLog(cur).sets[k][i - 1]; s.w = (prev && prev.w) || ''; }
+            if (i < item.sets - 1) startTimer(Number(item.rest), item.name);
+        }
+        saveLogs();
+    }
+    else if (a === 'run') { const l = getLog(cur); (l.runs[k] = l.runs[k] || {})[f] = t.value; saveLogs(); return; }
+    else if (a === 'run-done') { const l = getLog(cur); (l.runs[k] = l.runs[k] || {}).done = t.checked; saveLogs(); }
+    else if (a === 'walk-done') { getLog(cur).walk.done = t.checked; saveLogs(); }
+    else if (a === 'walk-min') { const w = getLog(cur).walk; w.min = t.value; if (Number(t.value) > 0) w.done = true; saveLogs(); }
+    else if (a === 'note') { getLog(cur).notes[t.dataset.v] = t.value; saveLogs(); return; }
+    else if (a === 'stretch-done') { getLog(cur).stretch = t.checked; saveLogs(); }
+    else if (a === 'histkey') histKey = t.value;
+    else if (a === 'start') { if (t.value) { settings.start = t.value; save(K.settings, settings); } }
+    else if (a === 'weekmap') { plan.week[t.dataset.v] = t.value; save(K.plan, plan); }
+    else if (a === 'ses') { plan.sessions[t.dataset.s][f] = f === 'minutes' ? Number(t.value) : t.value; save(K.plan, plan); return; }
+    else if (a === 'item') {
+        const it = plan.sessions[t.dataset.s].items[Number(t.dataset.i)];
+        it[f] = ['sets', 'top', 'rest', 'contacts'].includes(f) ? Number(t.value) : t.value; save(K.plan, plan); return;
+    }
+    else if (a === 'import') return importAll(t.files[0]);
+    render();
+});
+
+/* ---------- backup ---------- */
+function exportAll() {
+    const blob = new Blob([JSON.stringify({ app: 'workout-tracker', version: 2, exported: new Date().toISOString(), logs, plan, settings }, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'workout-backup-' + ds(new Date()) + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    settings.lastBackup = ds(new Date()); save(K.settings, settings); render();
+}
+function importAll(file) {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+        try {
+            const d = JSON.parse(r.result);
+            if (d.app !== 'workout-tracker' || !d.logs) throw 0;
+            if (!confirm('Replace everything on this device with this backup (' + Object.keys(d.logs).length + ' days)?')) return;
+            logs = d.logs; saveLogs();
+            if (d.plan && d.plan.sessions) { plan = d.plan; save(K.plan, plan); }
+            if (d.settings) { settings = Object.assign({}, d.settings); save(K.settings, settings); }
+            tab = 'today'; render();
+        } catch (e) { alert('That file isn\'t a backup from this app, so nothing changed.'); }
+    };
+    r.readAsText(file);
+}
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+render();
+</script>
+</body>
+</html>
