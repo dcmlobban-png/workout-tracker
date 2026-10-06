@@ -115,6 +115,12 @@ ol.steps { list-style: none; margin-top: 0.625rem; counter-reset: s; }
 ol.steps li { counter-increment: s; display: flex; gap: 0.5rem; align-items: baseline; padding: 0.4rem 0; border-top: 1px solid #334155; font-size: 0.875rem; }
 ol.steps li::before { content: counter(s); color: #64748b; font-size: 0.75rem; width: 1rem; flex: none; }
 ol.steps li b { margin-left: auto; text-align: right; color: #bfdbfe; font-weight: 600; flex: none; max-width: 45%; padding-left: 0.5rem; }
+.reps { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.375rem; }
+button.rep { width: 2.25rem; height: 2.25rem; padding: 0; background: #0f172a; border: 1px solid #475569; color: #64748b; font-size: 0.8125rem; }
+button.rep.on { background: #2563eb; border-color: #2563eb; color: #fff; }
+button.rep.more { border-style: dashed; }
+button.play { flex: none; background: #1e3a8a; color: #bfdbfe; }
+ol.steps li { align-items: center; }
 hr { border: none; border-top: 1px solid #334155; margin: 0.75rem 0; }
 </style>
 </head>
@@ -353,7 +359,7 @@ function lastRun(key, before) {
     const dates = Object.keys(logs).filter(d => d < before).sort().reverse();
     for (const d of dates) {
         const r = (logs[d].runs || {})[key];
-        if (r && Object.keys(r).some(k => r[k] !== '' && r[k] != null && k !== 'done')) return { date: d, r };
+        if (r && Object.keys(r).some(k => r[k] !== '' && r[k] != null && k !== 'done' && k[0] !== '_')) return { date: d, r };
     }
     return null;
 }
@@ -438,14 +444,16 @@ function viewItem(item, log, week) {
         const d = (log.done || {})[item.key];
         return `<div class="card ${d ? 'done' : ''}"><div class="row"><input type="checkbox" data-act="check" data-k="${k}" ${d ? 'checked' : ''}>
             <div class="grow"><h3 style="margin:0">${esc(item.name)}</h3>${item.note ? `<div class="muted">${esc(item.note)}</div>` : ''}</div></div>
-            ${item.steps && item.steps.length ? `<ol class="steps">${item.steps.map(s => { const j = String(s).indexOf(': '); return j < 0 ? `<li>${esc(s)}</li>` : `<li>${esc(s.slice(0, j))}<b>${esc(s.slice(j + 2))}</b></li>`; }).join('')}</ol>` : ''}</div>`;
+            ${item.steps && item.steps.length ? `<ol class="steps">${item.steps.map(s => { const j = String(s).indexOf(': '); const nm = j < 0 ? String(s) : s.slice(0, j), amt = j < 0 ? '' : s.slice(j + 2); return `<li><span class="grow">${esc(nm)}</span>${amt ? `<b>${esc(amt)}</b>` : ''}${timedSegs(nm, amt) ? `<button class="tiny play" data-act="step-timer" data-name="${esc(nm)}" data-amt="${esc(amt)}" aria-label="Start timer">&#9654;</button>` : ''}</li>`; }).join('')}</ol>` : ''}</div>`;
     }
     if (item.type === 'run') {
         const r = (log.runs || {})[item.key] || {}, lr = lastRun(item.key, cur);
         let h = `<div class="card"><div class="row"><input type="checkbox" data-act="run-done" data-k="${k}" ${r.done ? 'checked' : ''}>
             <div class="grow"><h3 style="margin:0">${esc(item.name)}</h3><div class="muted">${esc(progText(item, week))}</div></div></div><div class="fields">`;
-        for (const f of item.fields || [])
+        for (const f of item.fields || []) {
+            if (f.k === 'reps') { h += `<div style="flex-basis:100%"><label class="lab">${esc(f.label)}</label>${repBoxes(Number(r.reps) || 0, repTarget(item, week) + (r._x || 0), `data-act="run-rep" data-k="${k}"`)}</div>`; continue; }
             h += `<div><label class="lab">${esc(f.label)}</label><input type="number" inputmode="decimal" step="any" data-act="run" data-k="${k}" data-f="${esc(f.k)}" value="${esc(r[f.k])}"></div>`;
+        }
         h += `</div>`;
         if (lr) h += `<div class="last"><b>Last time</b> (${nice(lr.date)}): ${(item.fields || []).filter(f => lr.r[f.k] !== '' && lr.r[f.k] != null).map(f => esc(f.label) + ' ' + esc(lr.r[f.k])).join(' · ')}</div>`;
         return h + `</div>`;
@@ -460,10 +468,39 @@ function viewItem(item, log, week) {
         const s = sets[i] || {}, lw = last && last.sets[Math.min(i, last.sets.length - 1)];
         h += `<div class="set-row ${s.done ? 'done' : ''}"><input type="checkbox" data-act="set-done" data-k="${k}" data-i="${i}" ${s.done ? 'checked' : ''}><span class="set-label">Set ${i + 1}</span>`;
         if (item.type === 'lift') h += `<input class="num" type="number" inputmode="decimal" step="any" data-act="set" data-k="${k}" data-i="${i}" data-f="w" value="${esc(s.w)}" placeholder="${lw && lw.w ? esc(lw.w) : 'lb'}"><span class="unit">lb</span>`;
-        if (item.type !== 'jump') h += `<input class="num" type="number" inputmode="numeric" data-act="set" data-k="${k}" data-i="${i}" data-f="r" value="${esc(s.r)}" placeholder="${esc(item.top || '')}"><span class="unit">${item.type === 'hold' ? 'sec' : 'reps'}</span>`;
+        if (item.type === 'hold') h += `<button class="tiny play" data-act="hold-timer" data-k="${k}">&#9654; ${esc(item.top)} s</button>`;
         h += `</div>`;
+        if (item.type === 'lift' || item.type === 'bw') h += repBoxes(Number(s.r) || 0, (Number(item.top) || 8) + (s.x || 0), `data-act="rep" data-k="${k}" data-i="${i}"`);
     }
     return h + `</div>`;
+}
+
+// One tappable box per rep. Tapping box n marks n reps done; tapping the last filled box takes one off.
+function repBoxes(val, count, attrs) {
+    count = Math.max(count, val);
+    let h = '<div class="reps">';
+    for (let n = 1; n <= count; n++) h += `<button class="rep ${n <= val ? 'on' : ''}" ${attrs} data-n="${n}" aria-label="Rep ${n}">${n}</button>`;
+    return h + `<button class="rep more" ${attrs} data-n="more" aria-label="Add one more rep">+</button></div>`;
+}
+// How many rep boxes a run drill gets, read from its own text ("6 x 8 s", "4 reps").
+function repTarget(item, week) {
+    const t = progText(item, week), m = t.match(/(\d+)\s*x\s/) || t.match(/(\d+)\s*reps?\b/);
+    return m ? Math.min(Number(m[1]), 30) : 6;
+}
+// Turns "45 s each side", "2 x 20 s" or "3 min" into timer segments. Anything untimed returns null.
+function timedSegs(name, amt) {
+    amt = String(amt || '');
+    let m, sec = 0, rounds = 1;
+    if ((m = amt.match(/(\d+)\s*x\s*(\d+)\s*s\b/))) { rounds = Number(m[1]); sec = Number(m[2]); }
+    else if ((m = amt.match(/(\d+)\s*s\b/))) { sec = Number(m[1]); rounds = Math.pow(2, (amt.match(/\beach\b/g) || []).length); }
+    else if ((m = amt.match(/(\d+)\s*min\b/))) sec = Number(m[1]) * 60;
+    if (!sec) return null;
+    const segs = [];
+    for (let i = 0; i < rounds; i++) {
+        if (i) segs.push({ sec: 5, label: 'Switch · ' + name });
+        segs.push({ sec, label: name + (rounds > 1 ? ' (' + (i + 1) + ' of ' + rounds + ')' : '') });
+    }
+    return segs;
 }
 
 const fmtSec = s => { s = Number(s) || 0; return s >= 60 ? Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : s + ' s'; };
@@ -571,7 +608,8 @@ function beep() {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 }
 const fmtClock = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-function startTimer(sec, label) { if (!sec) return; timer = { end: Date.now() + sec * 1000, label, rang: false }; tick(); }
+function startTimer(sec, label) { if (!sec) return; timer = { end: Date.now() + sec * 1000, label, rang: false, kind: 'rest', queue: [] }; tick(); }
+function startSeq(segs) { if (!segs || !segs.length) return; timer = { end: Date.now() + segs[0].sec * 1000, label: segs[0].label, rang: false, kind: 'step', queue: segs.slice(1) }; tick(); }
 const stretchLeft = () => stretch ? (stretch.paused ? stretch.left : (stretch.end - Date.now()) / 1000) : 0;
 function stretchGo(i) {
     if (i >= plan.nightly.length) { stretch = null; getLog(cur).stretch = true; saveLogs(); beep(); render(); return; }
@@ -580,10 +618,15 @@ function stretchGo(i) {
 function tick() {
     const el = $('timer');
     if (timer) {
-        const left = (timer.end - Date.now()) / 1000;
+        let left = (timer.end - Date.now()) / 1000;
+        if (left <= 0 && timer.queue && timer.queue.length) {
+            beep(); const n = timer.queue.shift();
+            timer.end = Date.now() + n.sec * 1000; timer.label = n.label; left = n.sec;
+        }
+        const rest = timer.kind !== 'step';
         el.classList.add('show'); el.classList.toggle('over', left <= 0);
-        $('timerT').textContent = left > 0 ? fmtClock(left) : 'Go';
-        $('timerWhat').textContent = left > 0 ? 'Rest · ' + timer.label : 'Rest is over · ' + timer.label;
+        $('timerT').textContent = left > 0 ? fmtClock(left) : rest ? 'Go' : 'Done';
+        $('timerWhat').textContent = left > 0 ? (rest ? 'Rest · ' : '') + timer.label : (rest ? 'Rest is over · ' : '') + timer.label;
         if (left <= 0 && !timer.rang) { timer.rang = true; beep(); }
         if (left < -20) timer = null;
     } else el.classList.remove('show');
@@ -607,6 +650,29 @@ document.addEventListener('click', e => {
     else if (a === 'goto') { cur = v; tab = 'today'; }
     else if (a === 'timer-add') { if (timer) { timer.end = Math.max(timer.end, Date.now()) + 30000; timer.rang = false; } return tick(); }
     else if (a === 'timer-stop') { timer = null; return tick(); }
+    else if (a === 'step-timer') return startSeq(timedSegs(b.dataset.name, b.dataset.amt));
+    else if (a === 'hold-timer') { const item = findItem(b.dataset.k); return item && startSeq([{ sec: Number(item.top) || 0, label: item.name }]); }
+    else if (a === 'rep') {
+        const key = b.dataset.k, item = findItem(key), i = Number(b.dataset.i), s = setSlot(key, i);
+        if (b.dataset.n === 'more') s.x = (s.x || 0) + 1;
+        else {
+            const n = Number(b.dataset.n), was = s.done;
+            s.r = Number(s.r) === n ? n - 1 : n;
+            if (!s.r) { s.r = ''; s.done = false; }
+            else if (item && s.r >= Number(item.top) && !was) {
+                s.done = true;
+                if (item.type === 'lift' && !s.w) { const prev = getLog(cur).sets[key][i - 1]; s.w = (prev && prev.w) || ''; }
+                if (i < item.sets - 1) startTimer(Number(item.rest), item.name);
+            }
+        }
+        saveLogs();
+    }
+    else if (a === 'run-rep') {
+        const l = getLog(cur), r = l.runs[b.dataset.k] = l.runs[b.dataset.k] || {};
+        if (b.dataset.n === 'more') r._x = (r._x || 0) + 1;
+        else { const n = Number(b.dataset.n); r.reps = (Number(r.reps) === n ? n - 1 : n) || ''; }
+        saveLogs();
+    }
     else if (a === 'stretch-start') return stretchGo(0);
     else if (a === 'stretch-stop') stretch = null;
     else if (a === 'stretch-next') return stretchGo(stretch.i + 1);
@@ -642,7 +708,7 @@ document.addEventListener('change', e => {
         s.done = t.checked;
         if (item && item.type === 'jump') s.c = t.checked ? Number(item.contacts) || 0 : 0;
         if (item && t.checked) {
-            if (item.type !== 'jump' && !s.r) { const prev = getLog(cur).sets[k][i - 1]; s.r = (prev && prev.r) || ''; }
+            if (item.type !== 'jump' && !s.r) s.r = Number(item.top) || '';
             if (item.type === 'lift' && !s.w) { const prev = getLog(cur).sets[k][i - 1]; s.w = (prev && prev.w) || ''; }
             if (i < item.sets - 1) startTimer(Number(item.rest), item.name);
         }
