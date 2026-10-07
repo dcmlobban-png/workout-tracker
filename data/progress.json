@@ -1,7 +1,14 @@
 {
  "logs": {
   "2026-10-06": {
-   "sets": {},
+   "sets": {
+    "rfess": [
+     {
+      "r": "",
+      "done": false
+     }
+    ]
+   },
    "runs": {},
    "done": {
     "warmR1": false
@@ -9,7 +16,7 @@
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1791333931816,
+   "u": 1791333969547,
    "session": "gymA"
   }
  },
