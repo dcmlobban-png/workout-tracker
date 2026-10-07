@@ -71,7 +71,9 @@ const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
 module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-        if (!process.env.GITHUB_TOKEN || !process.env.APP_PASSCODE) return res.status(503).json({ error: 'not-configured' });
+        // Names only, never values: enough to tell which setting the deployment can't see.
+        const missing = ['GITHUB_TOKEN', 'APP_PASSCODE'].filter(k => !process.env[k]);
+        if (missing.length) return res.status(503).json({ error: 'not-configured', missing, environment: process.env.VERCEL_ENV || 'unknown' });
         if (!samePasscode(req.headers['x-passcode'], process.env.APP_PASSCODE)) return res.status(401).json({ error: 'bad-passcode' });
 
         if (req.method === 'GET') {
