@@ -121,12 +121,13 @@
    "runs": {},
    "done": {
     "warmR1": false,
-    "warmA": true
+    "warmA": true,
+    "coolA": true
    },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1791338380345,
+   "u": 1791338611774,
    "session": "gymA"
   }
  },
