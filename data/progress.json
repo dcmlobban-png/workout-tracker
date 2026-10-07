@@ -4,8 +4,9 @@
    "sets": {
     "rfess": [
      {
-      "r": "",
-      "done": false
+      "r": 8,
+      "done": true,
+      "w": "50"
      }
     ],
     "boxjump": [
@@ -75,7 +76,7 @@
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1791336798594,
+   "u": 1791336913713,
    "session": "gymA"
   }
  },
