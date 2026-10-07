@@ -11,12 +11,13 @@
    },
    "runs": {},
    "done": {
-    "warmR1": false
+    "warmR1": false,
+    "warmA": true
    },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1791333969547,
+   "u": 1791334846315,
    "session": "gymA"
   }
  },
