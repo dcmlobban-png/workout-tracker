@@ -363,29 +363,37 @@ function hasWork(d) {
     for (const k in (l.runs || {})) { const r = l.runs[k]; if (r.done || Object.keys(r).some(f => f[0] !== '_' && r[f] !== '' && r[f] != null && r[f] !== false)) return true; }
     return Object.values(l.done || {}).some(Boolean);
 }
-function skipDay(d) {
-    if (isSkipped(d)) return;
+function skipDays(list) {
+    list = list.filter(d => !isSkipped(d)).sort();
+    if (!list.length) return;
     // Pin every day already logged to the session it was, before the shift moves the calendar under it.
     // A day from here on with nothing trained yet (only a walk, say) is let go so it moves with the plan.
     for (const x in logs) {
         if (hasWork(x)) { if (!logs[x].session) { logs[x].session = sessionIdFor(x); logs[x].u = Date.now(); } }
-        else if (x >= d && logs[x].session) { delete logs[x].session; logs[x].u = Date.now(); }
+        else if (x >= list[0] && logs[x].session) { delete logs[x].session; logs[x].u = Date.now(); }
     }
-    settings.skips = skips().concat(d).sort();
+    settings.skips = skips().concat(list).sort();
     saveLogs(); save(K.settings, settings);
 }
-// The most recent training day that came and went with nothing logged, if there is one.
-function missedDay() {
+// Everything missed since the last workout that was actually logged. Walks back from yesterday to
+// that workout, finds the first training day in the gap, and returns it with every day from there
+// to yesterday. Skipping all of those lands that first missed session on today.
+function missedSpan() {
     const today = ds(new Date());
-    for (let i = 1; i <= 3; i++) {
+    if (hasWork(today)) return null;
+    const gap = [];
+    let lastLogged = null;
+    for (let i = 1; i <= 30; i++) {
         const d = addDays(today, -i);
-        if (d < settings.start) return null;
-        if (isSkipped(d)) continue;
-        const s = plan.sessions[sessionIdFor(d)];
-        if (!s || s.kind === 'off') continue;
-        return hasWork(d) ? null : d;
+        if (d < settings.start) break;
+        if (hasWork(d)) { lastLogged = d; break; }
+        if (!isSkipped(d)) gap.unshift(d);
     }
-    return null;
+    const at = gap.findIndex(d => { const s = plan.sessions[sessionIdFor(d)]; return s && s.kind !== 'off'; });
+    if (at < 0) return null;
+    const days = gap.slice(at);
+    return { first: days[0], days, lastLogged, title: plan.sessions[sessionIdFor(days[0])].title,
+        missed: days.filter(d => { const s = plan.sessions[sessionIdFor(d)]; return s && s.kind !== 'off'; }).length };
 }
 
 function blockWeek(d) {
@@ -463,10 +471,10 @@ function viewToday() {
     if (bw && week === 4) h += `<div class="card banner">Hold week. Same weights, one fewer set per lift, one fewer rep on runs.</div>`;
     if (bw && week === 8) h += `<div class="card banner">Light week, then retest. Same tests as week 1, same conditions.</div>`;
 
-    const missed = cur === ds(new Date()) ? missedDay() : null;
-    if (missed) h += `<div class="card banner"><b>${nice(missed)} wasn't logged</b> (${esc((plan.sessions[sessionIdFor(missed)] || {}).title)}).
-        Catch up moves that session to the next day and pushes everything after it back a day.
-        <button class="primary" style="width:100%;margin-top:0.625rem" data-act="skip" data-v="${missed}">Catch up</button></div>`;
+    const missed = cur === ds(new Date()) ? missedSpan() : null;
+    if (missed) h += `<div class="card banner"><b>${missed.missed} missed workout${missed.missed === 1 ? '' : 's'}</b> since ${missed.lastLogged ? 'your last logged one on ' + nice(missed.lastLogged) : 'the block started'}.
+        Catch up picks the plan back up where you left off: today becomes <b>${esc(missed.title)}</b> (from ${nice(missed.first)}) and everything after follows in order.
+        <button class="primary" style="width:100%;margin-top:0.625rem" data-act="catchup">Catch up</button></div>`;
 
     const skipped = isSkipped(cur) && !(log.session && hasWork(cur));
     h += `<div class="card"><h2>${skipped ? 'Skipped day' : esc(ses.title)}</h2>
@@ -747,7 +755,8 @@ document.addEventListener('click', e => {
     else if (a === 'export') return exportAll();
     else if (a === 'sync-on') { const p = $('passIn').value.trim(); if (!p) return; localStorage.setItem(PASS_KEY, p); queueSync(0); }
     else if (a === 'sync-now') queueSync(0);
-    else if (a === 'skip') skipDay(v);
+    else if (a === 'skip') skipDays([v]);
+    else if (a === 'catchup') { const m = missedSpan(); if (m) skipDays(m.days); }
     else if (a === 'unskip') { settings.skips = skips().filter(s => s !== v); save(K.settings, settings); }
     else if (a === 'skips-clear') { if (!confirm('Put the plan back on its original days? Days you already logged keep their sessions.')) return; settings.skips = []; save(K.settings, settings); }
     else if (a === 'sync-off') { if (!confirm('Stop saving to GitHub from this device? What is already saved stays there.')) return; localStorage.removeItem(PASS_KEY); clearTimeout(syncTimer); setSync('off'); }
