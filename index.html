@@ -346,12 +346,50 @@ let timer = null;     // { end, label }
 
 const saveLogs = () => save(K.logs, logs);
 // getLog is the write path: it stamps the day so syncing knows which copy of that day is newest.
-const getLog = d => { const l = logs[d] || (logs[d] = { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} }); l.u = Date.now(); return l; };
+// A new day's log records which session it was, so shifting the plan later never relabels a day already logged.
+const getLog = d => { const l = logs[d] || (logs[d] = { session: sessionIdFor(d), sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} }); l.u = Date.now(); return l; };
 const peekLog = d => logs[d] || { sets: {}, runs: {}, done: {}, pre: {}, walk: {}, notes: {} };
-const sessionIdFor = d => (logs[d] && logs[d].session) || plan.week[DAYS[pd(d).getDay()]] || 'off';
+
+/* Catch-up: each skipped date pushes the whole plan one day later from that date on.
+   So the plan's position on a real date is that date minus the number of skips before it. */
+const skips = () => settings.skips || [];
+const isSkipped = d => skips().includes(d);
+const effDate = d => { const k = skips().filter(s => s < d).length; return k ? addDays(d, -k) : d; };
+const plannedIdFor = d => isSkipped(d) ? 'off' : (plan.week[DAYS[pd(effDate(d)).getDay()]] || 'off');
+const sessionIdFor = d => (logs[d] && logs[d].session) || plannedIdFor(d);
+function hasWork(d) {
+    const l = logs[d]; if (!l) return false;
+    for (const k in (l.sets || {})) if ((l.sets[k] || []).some(s => s && s.done)) return true;
+    for (const k in (l.runs || {})) { const r = l.runs[k]; if (r.done || Object.keys(r).some(f => f[0] !== '_' && r[f] !== '' && r[f] != null && r[f] !== false)) return true; }
+    return Object.values(l.done || {}).some(Boolean);
+}
+function skipDay(d) {
+    if (isSkipped(d)) return;
+    // Pin every day already logged to the session it was, before the shift moves the calendar under it.
+    // A day from here on with nothing trained yet (only a walk, say) is let go so it moves with the plan.
+    for (const x in logs) {
+        if (hasWork(x)) { if (!logs[x].session) { logs[x].session = sessionIdFor(x); logs[x].u = Date.now(); } }
+        else if (x >= d && logs[x].session) { delete logs[x].session; logs[x].u = Date.now(); }
+    }
+    settings.skips = skips().concat(d).sort();
+    saveLogs(); save(K.settings, settings);
+}
+// The most recent training day that came and went with nothing logged, if there is one.
+function missedDay() {
+    const today = ds(new Date());
+    for (let i = 1; i <= 3; i++) {
+        const d = addDays(today, -i);
+        if (d < settings.start) return null;
+        if (isSkipped(d)) continue;
+        const s = plan.sessions[sessionIdFor(d)];
+        if (!s || s.kind === 'off') continue;
+        return hasWork(d) ? null : d;
+    }
+    return null;
+}
 
 function blockWeek(d) {
-    const days = Math.round((pd(d) - pd(settings.start)) / 864e5);
+    const days = Math.round((pd(effDate(d)) - pd(settings.start)) / 864e5);
     if (days < 0) return null;
     const w = Math.floor(days / 7);
     return { block: Math.floor(w / 8) + 1, week: (w % 8) + 1 };
@@ -425,10 +463,18 @@ function viewToday() {
     if (bw && week === 4) h += `<div class="card banner">Hold week. Same weights, one fewer set per lift, one fewer rep on runs.</div>`;
     if (bw && week === 8) h += `<div class="card banner">Light week, then retest. Same tests as week 1, same conditions.</div>`;
 
-    h += `<div class="card"><h2>${esc(ses.title)}</h2>
-        <div class="muted">${ses.kind === 'off' ? 'Walk only today.' : 'About ' + esc(ses.minutes) + ' min'}</div>
-        <label class="lab" style="margin-top:0.75rem">Doing a different session today? (missed day, Wednesday/Thursday swap)</label>
-        <select data-act="session">${Object.keys(plan.sessions).map(k => `<option value="${esc(k)}" ${k === sid ? 'selected' : ''}>${esc(plan.sessions[k].title)}</option>`).join('')}</select></div>`;
+    const missed = cur === ds(new Date()) ? missedDay() : null;
+    if (missed) h += `<div class="card banner"><b>${nice(missed)} wasn't logged</b> (${esc((plan.sessions[sessionIdFor(missed)] || {}).title)}).
+        Catch up moves that session to the next day and pushes everything after it back a day.
+        <button class="primary" style="width:100%;margin-top:0.625rem" data-act="skip" data-v="${missed}">Catch up</button></div>`;
+
+    const skipped = isSkipped(cur) && !(log.session && hasWork(cur));
+    h += `<div class="card"><h2>${skipped ? 'Skipped day' : esc(ses.title)}</h2>
+        <div class="muted">${skipped ? 'The plan moved forward a day from here. Walk only.' : ses.kind === 'off' ? 'Walk only today.' : 'About ' + esc(ses.minutes) + ' min'}</div>
+        ${skipped ? `<button class="ghost" style="width:100%;margin-top:0.75rem" data-act="unskip" data-v="${cur}">Undo: put the plan back</button>` : ''}
+        <label class="lab" style="margin-top:0.75rem">Doing a different session today? (one-off swap, doesn't move the rest of the plan)</label>
+        <select data-act="session">${Object.keys(plan.sessions).map(k => `<option value="${esc(k)}" ${k === sid ? 'selected' : ''}>${esc(plan.sessions[k].title)}</option>`).join('')}</select>
+        ${!skipped && ses.kind !== 'off' && !hasWork(cur) ? `<button class="ghost" style="width:100%;margin-top:0.625rem" data-act="skip" data-v="${cur}">Skip this day and shift the plan forward</button>` : ''}</div>`;
 
     for (const item of ses.items) h += viewItem(item, log, week);
 
@@ -569,7 +615,8 @@ function viewHistory() {
 
 function viewPlan() {
     let h = `<div class="card"><h3>Block</h3><label class="lab">Week 1 starts on</label><input type="date" data-act="start" value="${esc(settings.start)}">
-        <div class="muted" style="margin-top:0.5rem">Each block is 8 weeks. Week 4 is a hold week, week 8 is light plus retest. Starting a new block is a change here, not a rebuild.</div></div>`;
+        <div class="muted" style="margin-top:0.5rem">Each block is 8 weeks. Week 4 is a hold week, week 8 is light plus retest. Starting a new block is a change here, not a rebuild.</div>
+        ${skips().length ? `<hr><div class="row"><div class="grow small">Plan shifted forward ${skips().length} day${skips().length === 1 ? '' : 's'}: ${skips().map(nice).join(', ')}</div><button class="tiny ghost" data-act="skips-clear">Clear</button></div>` : ''}</div>`;
     h += `<div class="card"><h3>Which session on which day</h3>`;
     for (const d of DAYS.slice(1).concat(DAYS[0]))
         h += `<div class="row" style="margin-top:0.375rem"><div style="width:6rem" class="small">${d}</div><select data-act="weekmap" data-v="${d}">${Object.keys(plan.sessions).map(k => `<option value="${esc(k)}" ${plan.week[d] === k ? 'selected' : ''}>${esc(plan.sessions[k].title)}</option>`).join('')}</select></div>`;
@@ -700,6 +747,9 @@ document.addEventListener('click', e => {
     else if (a === 'export') return exportAll();
     else if (a === 'sync-on') { const p = $('passIn').value.trim(); if (!p) return; localStorage.setItem(PASS_KEY, p); queueSync(0); }
     else if (a === 'sync-now') queueSync(0);
+    else if (a === 'skip') skipDay(v);
+    else if (a === 'unskip') { settings.skips = skips().filter(s => s !== v); save(K.settings, settings); }
+    else if (a === 'skips-clear') { if (!confirm('Put the plan back on its original days? Days you already logged keep their sessions.')) return; settings.skips = []; save(K.settings, settings); }
     else if (a === 'sync-off') { if (!confirm('Stop saving to GitHub from this device? What is already saved stays there.')) return; localStorage.removeItem(PASS_KEY); clearTimeout(syncTimer); setSync('off'); }
     else if (a === 'item-del') { if (!confirm('Remove this exercise from the plan? Your logged history stays.')) return; plan.sessions[b.dataset.s].items.splice(Number(b.dataset.i), 1); save(K.plan, plan); }
     else if (a === 'item-up') { const arr = plan.sessions[b.dataset.s].items, i = Number(b.dataset.i); if (i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; save(K.plan, plan); } }
