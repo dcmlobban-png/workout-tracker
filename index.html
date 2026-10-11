@@ -375,25 +375,33 @@ function skipDays(list) {
     settings.skips = skips().concat(list).sort();
     saveLogs(); save(K.settings, settings);
 }
-// Everything missed since the last workout that was actually logged. Walks back from yesterday to
-// that workout, finds the first training day in the gap, and returns it with every day from there
-// to yesterday. Skipping all of those lands that first missed session on today.
-function missedSpan() {
+// Catch-up goes by which WORKOUT was done last, not which calendar day it was done on. If Monday's
+// session was done on Tuesday, the next one up is still Tuesday's. So: find the last workout logged,
+// find where that session sits in the plan's order, take the next training session after it, and
+// work out how many days the plan has to shift for that session to land on today.
+const planIdOn = p => plan.week[DAYS[pd(p).getDay()]] || 'off';
+const isTraining = id => { const s = plan.sessions[id]; return !!s && s.kind !== 'off'; };
+function catchUpPlan() {
     const today = ds(new Date());
     if (hasWork(today)) return null;
-    const gap = [];
-    let lastLogged = null;
-    for (let i = 1; i <= 30; i++) {
-        const d = addDays(today, -i);
-        if (d < settings.start) break;
-        if (hasWork(d)) { lastLogged = d; break; }
-        if (!isSkipped(d)) gap.unshift(d);
-    }
-    const at = gap.findIndex(d => { const s = plan.sessions[sessionIdFor(d)]; return s && s.kind !== 'off'; });
-    if (at < 0) return null;
-    const days = gap.slice(at);
-    return { first: days[0], days, lastLogged, title: plan.sessions[sessionIdFor(days[0])].title,
-        missed: days.filter(d => { const s = plan.sessions[sessionIdFor(d)]; return s && s.kind !== 'off'; }).length };
+    let last = null;
+    for (let i = 1; i <= 60 && !last; i++) { const d = addDays(today, -i); if (hasWork(d)) last = d; }
+
+    let next;                                   // a date on the plan's own calendar, before any shifting
+    if (last) {
+        const id = sessionIdFor(last), at = effDate(last);
+        let q = at;                             // where the session she did sits in the plan, nearest to when she did it
+        for (const off of [0, -1, 1, -2, 2, -3, 3]) if (planIdOn(addDays(at, off)) === id) { q = addDays(at, off); break; }
+        next = addDays(q, 1);
+    } else next = settings.start;
+    for (let i = 0; i < 7 && !isTraining(planIdOn(next)); i++) next = addDays(next, 1);
+    if (!isTraining(planIdOn(next))) return null;
+
+    const behind = Math.round((pd(effDate(today)) - pd(next)) / 864e5);
+    if (behind <= 0) return null;               // on schedule or ahead of it: nothing to catch up
+    const days = [];
+    for (let i = 1; i <= 120 && days.length < behind; i++) { const d = addDays(today, -i); if (!isSkipped(d)) days.push(d); }
+    return { days, behind, last, lastTitle: last ? (plan.sessions[sessionIdFor(last)] || {}).title : '', title: plan.sessions[planIdOn(next)].title };
 }
 
 function blockWeek(d) {
@@ -471,9 +479,9 @@ function viewToday() {
     if (bw && week === 4) h += `<div class="card banner">Hold week. Same weights, one fewer set per lift, one fewer rep on runs.</div>`;
     if (bw && week === 8) h += `<div class="card banner">Light week, then retest. Same tests as week 1, same conditions.</div>`;
 
-    const missed = cur === ds(new Date()) ? missedSpan() : null;
-    if (missed) h += `<div class="card banner"><b>${missed.missed} missed workout${missed.missed === 1 ? '' : 's'}</b> since ${missed.lastLogged ? 'your last logged one on ' + nice(missed.lastLogged) : 'the block started'}.
-        Catch up picks the plan back up where you left off: today becomes <b>${esc(missed.title)}</b> (from ${nice(missed.first)}) and everything after follows in order.
+    const missed = cur === ds(new Date()) ? catchUpPlan() : null;
+    if (missed) h += `<div class="card banner">${missed.last ? `Your last logged workout was <b>${esc(missed.lastTitle)}</b> on ${nice(missed.last)}.` : 'Nothing is logged yet in this block.'}
+        Next in the plan is <b>${esc(missed.title)}</b>. Catch up makes that today's workout, and everything after it follows in order.
         <button class="primary" style="width:100%;margin-top:0.625rem" data-act="catchup">Catch up</button></div>`;
 
     const skipped = isSkipped(cur) && !(log.session && hasWork(cur));
@@ -756,7 +764,7 @@ document.addEventListener('click', e => {
     else if (a === 'sync-on') { const p = $('passIn').value.trim(); if (!p) return; localStorage.setItem(PASS_KEY, p); queueSync(0); }
     else if (a === 'sync-now') queueSync(0);
     else if (a === 'skip') skipDays([v]);
-    else if (a === 'catchup') { const m = missedSpan(); if (m) skipDays(m.days); }
+    else if (a === 'catchup') { const m = catchUpPlan(); if (m) skipDays(m.days); }
     else if (a === 'unskip') { settings.skips = skips().filter(s => s !== v); save(K.settings, settings); }
     else if (a === 'skips-clear') { if (!confirm('Put the plan back on its original days? Days you already logged keep their sessions.')) return; settings.skips = []; save(K.settings, settings); }
     else if (a === 'sync-off') { if (!confirm('Stop saving to GitHub from this device? What is already saved stays there.')) return; localStorage.removeItem(PASS_KEY); clearTimeout(syncTimer); setSync('off'); }
