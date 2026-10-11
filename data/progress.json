@@ -146,10 +146,11 @@
    "done": {},
    "pre": {},
    "walk": {
-    "done": true
+    "done": true,
+    "min": "60"
    },
    "notes": {},
-   "u": 1791741979150,
+   "u": 1791741984505,
    "session": "off"
   }
  },
