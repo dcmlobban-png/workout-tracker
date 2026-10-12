@@ -153,6 +153,18 @@
    "u": 1791745925098,
    "session": "gymA",
    "stretch": true
+  },
+  "2026-10-12": {
+   "session": "gymA",
+   "sets": {},
+   "runs": {},
+   "done": {
+    "warmA": true
+   },
+   "pre": {},
+   "walk": {},
+   "notes": {},
+   "u": 1791818242843
   }
  },
  "plan": {
