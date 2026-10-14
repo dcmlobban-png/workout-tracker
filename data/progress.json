@@ -289,14 +289,18 @@
   "2026-10-14": {
    "session": "run1",
    "sets": {},
-   "runs": {},
+   "runs": {
+    "start8": {
+     "done": true
+    }
+   },
    "done": {
     "warmR1": true
    },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1791981805266
+   "u": 1791982385435
   }
  },
  "plan": {
