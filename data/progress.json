@@ -301,12 +301,15 @@
     }
    },
    "done": {
-    "warmR1": true
+    "warmR1": true,
+    "coolR1": true
    },
    "pre": {},
-   "walk": {},
+   "walk": {
+    "done": false
+   },
    "notes": {},
-   "u": 1791984710738
+   "u": 1791985238703
   }
  },
  "plan": {
