@@ -619,13 +619,22 @@
   },
   "2026-10-20": {
    "session": "gymA",
-   "sets": {},
+   "sets": {
+    "boxjump": [
+     {
+      "done": true,
+      "c": 3
+     }
+    ]
+   },
    "runs": {},
-   "done": {},
+   "done": {
+    "warmA": true
+   },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1792526701959
+   "u": 1792531522293
   }
  },
  "plan": {
