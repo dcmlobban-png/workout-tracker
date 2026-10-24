@@ -831,6 +831,20 @@
     "low": "i feel super blah"
    },
    "u": 1792721565460
+  },
+  "2026-10-23": {
+   "session": "run2",
+   "sets": {},
+   "runs": {
+    "easy": {
+     "done": true
+    }
+   },
+   "done": {},
+   "pre": {},
+   "walk": {},
+   "notes": {},
+   "u": 1792802362189
   }
  },
  "plan": {
