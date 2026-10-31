@@ -943,13 +943,22 @@
   },
   "2026-10-31": {
    "session": "gymC",
-   "sets": {},
+   "sets": {
+    "pogo": [
+     {
+      "done": true,
+      "c": 15
+     }
+    ]
+   },
    "runs": {},
-   "done": {},
+   "done": {
+    "warmC": true
+   },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1793466252029
+   "u": 1793467019020
   }
  },
  "plan": {
