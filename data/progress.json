@@ -1127,11 +1127,13 @@
    "session": "gymB",
    "sets": {},
    "runs": {},
-   "done": {},
+   "done": {
+    "warmB": true
+   },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1793748229958
+   "u": 1793794550800
   }
  },
  "plan": {
