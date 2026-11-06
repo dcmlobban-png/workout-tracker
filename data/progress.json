@@ -1246,14 +1246,19 @@
   "2026-11-06": {
    "session": "run3",
    "sets": {},
-   "runs": {},
+   "runs": {
+    "hills": {
+     "reps": 6,
+     "done": true
+    }
+   },
    "done": {
     "warmR3": true
    },
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1793968428714
+   "u": 1793970501916
   }
  },
  "plan": {
