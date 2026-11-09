@@ -1370,13 +1370,20 @@
    "session": "gymC"
   },
   "2026-11-09": {
-   "sets": {},
+   "sets": {
+    "boxjump": [
+     {
+      "done": true,
+      "c": 3
+     }
+    ]
+   },
    "runs": {},
    "done": {},
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1794224945838,
+   "u": 1794226368836,
    "session": "gymA"
   }
  },
