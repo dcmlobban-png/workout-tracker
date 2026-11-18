@@ -1673,6 +1673,18 @@
    "notes": {},
    "u": 1794834425079,
    "session": "gymA"
+  },
+  "2026-11-18": {
+   "session": "gymB",
+   "sets": {},
+   "runs": {},
+   "done": {
+    "warmB": true
+   },
+   "pre": {},
+   "walk": {},
+   "notes": {},
+   "u": 1795003626062
   }
  },
  "plan": {
