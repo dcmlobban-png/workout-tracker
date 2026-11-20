@@ -1767,7 +1767,48 @@
   },
   "2026-11-20": {
    "session": "gymA",
-   "sets": {},
+   "sets": {
+    "clean": [
+     {
+      "w": "95",
+      "done": true,
+      "r": 3
+     },
+     {
+      "done": true,
+      "r": 3,
+      "w": "95"
+     },
+     {
+      "done": true,
+      "r": 3,
+      "w": "95"
+     },
+     {
+      "done": true,
+      "r": 3,
+      "w": "95"
+     }
+    ],
+    "boxjump": [
+     {
+      "done": true,
+      "c": 4
+     },
+     {
+      "done": true,
+      "c": 4
+     },
+     {
+      "done": true,
+      "c": 4
+     },
+     {
+      "done": true,
+      "c": 4
+     }
+    ]
+   },
    "runs": {},
    "done": {
     "warmA": true
@@ -1775,7 +1816,7 @@
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1795210683411
+   "u": 1795211794557
   }
  },
  "plan": {
