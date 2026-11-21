@@ -1919,6 +1919,24 @@
    "walk": {},
    "notes": {},
    "u": 1795217205274
+  },
+  "2026-11-21": {
+   "session": "run3",
+   "sets": {},
+   "runs": {
+    "hills": {
+     "done": true,
+     "reps": 16
+    }
+   },
+   "done": {
+    "warmR3": true,
+    "coolR3": true
+   },
+   "pre": {},
+   "walk": {},
+   "notes": {},
+   "u": 1795305485694
   }
  },
  "plan": {
