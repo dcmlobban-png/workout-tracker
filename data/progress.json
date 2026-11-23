@@ -1940,7 +1940,28 @@
   },
   "2026-11-23": {
    "session": "gymC",
-   "sets": {},
+   "sets": {
+    "broad": [
+     {
+      "done": true,
+      "c": 3
+     },
+     {
+      "done": true,
+      "c": 3
+     }
+    ],
+    "latbound": [
+     {
+      "done": true,
+      "c": 6
+     },
+     {
+      "done": true,
+      "c": 6
+     }
+    ]
+   },
    "runs": {},
    "done": {
     "warmC": true
@@ -1948,7 +1969,7 @@
    "pre": {},
    "walk": {},
    "notes": {},
-   "u": 1795452576295
+   "u": 1795452807501
   }
  },
  "plan": {
